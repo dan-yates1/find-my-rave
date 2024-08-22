@@ -37,13 +37,7 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
   ): Promise<LocationSuggestion[]> => {
     try {
       const response = await fetch(
-        `https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${query}`,
-        {
-          headers: {
-            "X-RapidAPI-Key": process.env.NEXT_PUBLIC_GEO_DB_API_KEY || "",
-            "X-RapidAPI-Host": "wft-geo-db.p.rapidapi.com",
-          },
-        }
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_API_KEY}`
       );
 
       if (!response.ok) {
@@ -51,23 +45,20 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
           "Failed to fetch location suggestions",
           response.statusText
         );
-        return []; // Return an empty array if the request fails
+        return [];
       }
 
       const data = await response.json();
 
-      if (!data.data) {
-        console.error("Unexpected API response structure", data);
-        return []; // Return an empty array if the data structure is unexpected
-      }
-
-      return data.data.map((city: any) => ({
-        name: city.city,
-        country: city.country,
+      return data.features.map((place: any) => ({
+        name: place.place_name,
+        country:
+          place.context?.find((ctx: any) => ctx.id.includes("country"))?.text ||
+          "",
       }));
     } catch (error) {
       console.error("Error fetching location suggestions", error);
-      return []; // Return an empty array if an error occurs
+      return [];
     }
   };
 

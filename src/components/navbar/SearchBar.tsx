@@ -21,7 +21,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   };
 
   return (
-    <div className="flex items-center border border-gray-300 rounded-full bg-gray-100 px-4 py-2 shadow-sm w-full">
+    <div className="flex items-center border border-gray-300 rounded-full bg-gray-100 px-4 py-2 w-full">
       {/* Search input */}
       <div className="flex items-center space-x-2 flex-grow">
         <MagnifyingGlassIcon className="w-5 h-5 text-gray-400" />

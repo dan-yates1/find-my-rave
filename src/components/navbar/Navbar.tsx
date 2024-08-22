@@ -19,7 +19,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white border-b border-gray-200">
+    <nav className="bg-white border-b border-gray-200 shadow-md">
       <div className="px-5 lg:px-10 mx-auto flex items-center justify-between py-4">
         {/* Logo/Brand Name */}
         <Link href="/" className="text-blue-600 font-black text-xl">
@@ -40,19 +40,19 @@ export default function Navbar() {
             Find Events
           </Link>
           <Link
-            href="/create-events"
+            href="/sign-up"
             className="text-gray-700 hover:text-gray-900"
           >
-            Create Events
+            Sign Up
           </Link>
           <Link href="/login" className="text-gray-700 hover:text-gray-900">
             Login
           </Link>
           <Link
-            href="/sign-up"
+            href="/create-event"
             className="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700"
           >
-            Sign Up
+            Create Event
           </Link>
         </div>
 
@@ -82,19 +82,19 @@ export default function Navbar() {
               Find Events
             </Link>
             <Link
-              href="/create-events"
+              href="/sign-up"
               className="text-gray-700 hover:text-gray-900"
             >
-              Create Events
+              Sign Up
             </Link>
             <Link href="/login" className="text-gray-700 hover:text-gray-900">
               Login
             </Link>
             <Link
-              href="/sign-up"
+              href="/create-event"
               className="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700"
             >
-              Sign Up
+              Create Event
             </Link>
           </div>
 

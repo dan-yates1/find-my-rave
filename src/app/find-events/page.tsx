@@ -35,7 +35,7 @@ const FindEventsPage = async () => {
       </div>
 
       {/* Map Area */}
-      <div className="w-1/2 p-4 bg-gray-100">
+      <div className="w-1/2 p-4">
         <Map events={eventsWithCoordinates} />
         {/* <div className="w-full h-full bg-gray-200 flex items-center justify-center">
           <p>Map will be displayed here</p>

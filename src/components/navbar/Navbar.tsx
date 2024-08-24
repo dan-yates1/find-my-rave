@@ -19,7 +19,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white border-b border-gray-200 shadow-md">
+    <nav className="bg-white border-b border-gray-200 shadow-sm">
       <div className="px-5 lg:px-10 mx-auto flex items-center justify-between py-4">
         {/* Logo/Brand Name */}
         <Link href="/" className="text-blue-600 font-black text-xl">

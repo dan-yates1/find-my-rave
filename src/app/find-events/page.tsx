@@ -14,10 +14,6 @@ const FindEventsPage = async () => {
     },
   });
 
-  const eventsWithCoordinates = events.filter(
-    (event) => event.latitude !== null && event.longitude !== null
-  );
-
   return (
     <div className="flex flex-col lg:flex-row h-screen">
       {/* Event List */}
@@ -32,7 +28,7 @@ const FindEventsPage = async () => {
 
       {/* Map Area - Only render on large screens */}
       <div className="hidden lg:block lg:w-1/2 p-4">
-        <Map events={eventsWithCoordinates} />
+        <Map events={events} />
       </div>
     </div>
   );

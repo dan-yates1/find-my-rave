@@ -2,15 +2,15 @@
 
 import React, { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_API_KEY!;
 
 interface Event {
   id: string;
   title: string;
-  location: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 interface MapProps {
@@ -32,7 +32,17 @@ const Map: React.FC<MapProps> = ({ events }) => {
       attributionControl: false, // Disable default attribution control
     });
 
-    // TODO: Add markers for events
+    // Add markers for each event
+    events.forEach((event) => {
+      if (event.latitude !== null && event.longitude !== null) {
+        const popup = new mapboxgl.Popup({ offset: 25 }).setText(event.title);
+
+        new mapboxgl.Marker({ color: "#3B82F6" }) // Customize marker color if needed
+          .setLngLat([event.longitude, event.latitude])
+          .setPopup(popup) // Add popup with event title
+          .addTo(map.current!);
+      }
+    });
   }, [events]);
 
   return <div ref={mapContainer} className="w-full h-full" />;

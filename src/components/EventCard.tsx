@@ -9,14 +9,15 @@ interface EventCardProps {
 
 const EventCard = ({ event }: EventCardProps) => {
   return (
-    <div className="flex space-x-4 p-4 border-b border-gray-300">
+    // hover:shadow-outline-lg transition-shadow duration-300 ease-in-out
+    <div className="flex space-x-4 p-4 border-b border-gray-300"> 
       {/* Event Image */}
       <Image
         src="/placeholder.png"
         width={100}
         height={100}
         alt={event.title}
-        className="w-60 h-30 rounded-lg object-cover"
+        className="w-52 h-28 rounded-lg object-cover"
       />
 
       {/* Event Details */}

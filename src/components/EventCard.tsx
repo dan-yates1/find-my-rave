@@ -1,7 +1,7 @@
 import React from "react";
 import { Event } from "@prisma/client";
 import Image from "next/image";
-import { MapIcon, TicketIcon } from "@heroicons/react/24/outline";
+import { BookmarkIcon, MapIcon, TicketIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 
 interface EventCardProps {
@@ -12,7 +12,7 @@ const EventCard = ({ event }: EventCardProps) => {
   return (
     <Link href={`/events/${event.slug}`}>
       {/* hover:shadow-outline-lg transition-shadow duration-300 ease-in-out */}
-      <div className="flex space-x-4 p-4 hover:rounded-lg hover:shadow-lg">
+      <div className="flex space-x-4 p-4 rounded-xl mb-6 hover:shadow-outline-lg transition-shadow duration-300 ease-in-out">
         {/* Event Image */}
         <Image
           src="/placeholder.png"
@@ -47,21 +47,10 @@ const EventCard = ({ event }: EventCardProps) => {
         </div>
 
         {/* Bookmark Icon */}
-        <div className="text-blue-600">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M5 3v18l7-5 7 5V3z"
-            />
-          </svg>
+        <div className="ml-auto flex items-center">
+          <div className="p-2 rounded-full hover:bg-blue-100 transition-colors duration-300">
+            <BookmarkIcon className="h-6 w-6 text-blue-500 hover:text-blue-700" />
+          </div>
         </div>
       </div>
     </Link>

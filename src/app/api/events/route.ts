@@ -1,20 +1,14 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
 import { createEventSchema } from "@/lib/validation";
 import { PrismaClient } from "@prisma/client";
 import { slugify } from "@/lib/utils";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" });
-  }
+const prisma = new PrismaClient();
 
+export async function POST(request: Request) {
   try {
-    const prisma = new PrismaClient();
-
-    const data = createEventSchema.parse(req.body);
+    const body = await request.json();
+    const data = createEventSchema.parse(body);
 
     const slug = slugify(data.title);
 
@@ -34,9 +28,16 @@ export default async function handler(
       },
     });
 
-    return res.status(201).json(event);
+    return NextResponse.json(event, { status: 201 });
   } catch (error) {
     console.error("Error creating event:", error);
-    return res.status(400).json({ message: "Invalid data", error });
+    return NextResponse.json(
+      { message: "Invalid data", error },
+      { status: 400 }
+    );
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ message: "Method not allowed" }, { status: 405 });
 }

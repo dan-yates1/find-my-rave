@@ -43,7 +43,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
       {/* Search button */}
       <button
         onClick={handleSearch}
-        className="ml-3 p-2 bg-blue-600 rounded-full text-white"
+        className="ml-3 p-2 bg-blue-600 rounded-full text-white hover:bg-blue-700"
       >
         <MagnifyingGlassIcon className="w-5 h-5" />
       </button>

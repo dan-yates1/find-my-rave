@@ -5,7 +5,7 @@ export default function Home() {
     <div
       className="relative text-white overflow-hidden"
       style={{
-        backgroundImage: "url('/rave-bg.jpg')",
+        backgroundImage: "url('/video-fallback.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",

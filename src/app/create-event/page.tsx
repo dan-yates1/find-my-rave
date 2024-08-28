@@ -1,16 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { createEventSchema } from "@/lib/validation";
-
-type CreateEventFormData = z.infer<typeof createEventSchema>;
+import { createEventSchema, CreateEventFormData } from "@/lib/validation";
 
 const CreateEventPage: React.FC = () => {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   const {
     register,
@@ -20,15 +18,38 @@ const CreateEventPage: React.FC = () => {
     resolver: zodResolver(createEventSchema),
   });
 
-  // Handle form submission
   const onSubmit = async (data: CreateEventFormData) => {
+    setLoading(true);
+
+    let imageUrl = "";
+
+    // Handle image upload if provided
+    if (data.image && data.image.length > 0) {
+      const formData = new FormData();
+      formData.append("file", data.image[0]);
+
+      try {
+        const uploadResponse = await fetch("/api/upload-image", {
+          method: "POST",
+          body: formData,
+        });
+
+        const uploadResult = await uploadResponse.json();
+        imageUrl = uploadResult.imageUrl;
+      } catch (error) {
+        console.error("Failed to upload image:", error);
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const response = await fetch("/api/events", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, imageUrl }),
       });
 
       if (response.ok) {
@@ -38,6 +59,8 @@ const CreateEventPage: React.FC = () => {
       }
     } catch (error) {
       console.error("An error occurred:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -208,23 +231,23 @@ const CreateEventPage: React.FC = () => {
           )}
         </div>
 
-        {/* Image URL */}
+        {/* Image Upload */}
         <div>
           <label
-            htmlFor="imageUrl"
+            htmlFor="image"
             className="block text-sm font-medium text-gray-700"
           >
-            Image URL
+            Upload Image
           </label>
           <input
-            id="imageUrl"
-            type="url"
-            {...register("imageUrl")}
+            id="image"
+            type="file"
+            {...register("image")}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
           />
-          {errors.imageUrl && (
+          {errors.image && (
             <p className="text-red-500 text-sm mt-1">
-              {errors.imageUrl?.message}
+              {errors.image.message as string}
             </p>
           )}
         </div>
@@ -234,8 +257,9 @@ const CreateEventPage: React.FC = () => {
           <button
             type="submit"
             className="w-full bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={loading}
           >
-            Create Event
+            {loading ? "Creating..." : "Create Event"}
           </button>
         </div>
       </form>

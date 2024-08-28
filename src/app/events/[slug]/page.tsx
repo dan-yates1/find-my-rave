@@ -26,7 +26,7 @@ const EventDetailsPage = async ({ params }: EventDetailsPageProps) => {
       {/* Banner Image */}
       <div className="relative h-96 w-full">
         <Image
-          src="/rave-bg.jpg"
+          src={event.imageUrl || "/rave-bg.jpg"}
           alt={event.title}
           layout="fill"
           objectFit="cover"

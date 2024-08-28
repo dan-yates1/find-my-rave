@@ -24,7 +24,7 @@ const EventCard = ({ event }: EventCardProps) => {
     >
       {/* Event Image */}
       <Image
-        src="/rave-bg.jpg"
+        src={event.imageUrl || "/rave-bg.jpg"}
         width={200}
         height={200}
         alt={event.title}

@@ -18,17 +18,14 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
   onLocationChange,
 }) => {
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+  const [hasFocus, setHasFocus] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (location.length > 0) {
       fetchLocationSuggestions(location).then((results) => {
         setSuggestions(results);
-        setShowSuggestions(true);
       });
-    } else {
-      setShowSuggestions(false);
     }
   }, [location]);
 
@@ -64,21 +61,8 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
 
   const handleSuggestionClick = (suggestion: LocationSuggestion) => {
     onLocationChange(suggestion.name);
-    setShowSuggestions(false);
+    setHasFocus(false);
     inputRef.current?.blur(); // Explicitly blur the input after selection
-  };
-
-  const handleFocus = () => {
-    if (location.length > 0) {
-      setShowSuggestions(true);
-    }
-  };
-
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    // Add a small timeout to allow the click to register before closing suggestions
-    setTimeout(() => {
-      setShowSuggestions(false);
-    }, 100);
   };
 
   return (
@@ -90,14 +74,14 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
           type="text"
           value={location}
           onChange={(e) => onLocationChange(e.target.value)}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
+          onFocus={() => setHasFocus(true)}
+          onBlur={() => setHasFocus(false)}
           placeholder="Location"
           className="bg-transparent outline-none flex-grow"
         />
       </div>
 
-      {showSuggestions && (
+      {hasFocus && suggestions.length > 0 && (
         <ul className="absolute left-0 right-0 bg-white rounded-lg shadow-lg mt-2 z-20">
           {suggestions.map((suggestion, index) => (
             <li

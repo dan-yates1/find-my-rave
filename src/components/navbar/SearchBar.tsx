@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import LocationSearchInput from "./LocationSearchInput";
+import { useRouter } from "next/navigation";
 
 interface SearchBarProps {
   onSearch: (searchParams: { input: string; location: string }) => void;
@@ -11,13 +12,26 @@ interface SearchBarProps {
 const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   const [input, setInput] = useState<string>("");
   const [location, setLocation] = useState<string>("");
+  const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
   };
 
   const handleSearch = () => {
-    onSearch({ input, location });
+    let city = location;
+
+    const locationParts = location.split(",");
+    if (locationParts.length > 0) {
+      city = locationParts[0].trim();
+    }
+
+    const query = new URLSearchParams({
+      event: input,
+      location: city,
+    }).toString();
+
+    router.push(`/find-events?${query}`);
   };
 
   return (

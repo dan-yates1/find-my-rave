@@ -2,7 +2,15 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <div className="relative bg-gradient-to-b from-black to-gray-900 text-white overflow-hidden">
+    <div
+      className="relative text-white overflow-hidden"
+      style={{
+        backgroundImage: "url('/rave-bg.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
       <div className="absolute inset-0">
         {/* Background Video */}
         <video
@@ -15,24 +23,11 @@ export default function Home() {
           <source src="/rave-video.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-        {/* Fallback Image for No-JS Scenarios */}
-        <noscript>
-          <Image
-            src="/video-fallback.jpg"
-            width={1000}
-            height={1000}
-            alt="Rave Event"
-            className="w-full h-full object-cover"
-          />
-        </noscript>
       </div>
       <div className="relative z-10 flex flex-col items-center justify-center h-screen px-4 text-center">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight">
           Discover Your Next Rave
         </h1>
-        {/* <p className="mt-4 text-lg sm:text-xl md:text-2xl max-w-xl">
-          Coming soon...
-        </p> */}
         <p className="mt-4 text-lg sm:text-xl md:text-2xl max-w-xl">
           Find the best raves and music events near you. Let the beat guide you.
         </p>

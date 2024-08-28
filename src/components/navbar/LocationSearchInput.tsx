@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { MapPinIcon } from "@heroicons/react/24/outline";
 
 interface LocationSuggestion {
@@ -19,7 +19,7 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
 }) => {
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
-  const [hasFocus, setHasFocus] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (location.length > 0) {
@@ -65,6 +65,20 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
   const handleSuggestionClick = (suggestion: LocationSuggestion) => {
     onLocationChange(suggestion.name);
     setShowSuggestions(false);
+    inputRef.current?.blur(); // Explicitly blur the input after selection
+  };
+
+  const handleFocus = () => {
+    if (location.length > 0) {
+      setShowSuggestions(true);
+    }
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Add a small timeout to allow the click to register before closing suggestions
+    setTimeout(() => {
+      setShowSuggestions(false);
+    }, 100);
   };
 
   return (
@@ -72,22 +86,23 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
       <div className="flex items-center space-x-2">
         <MapPinIcon className="w-5 h-5 text-gray-400" />
         <input
+          ref={inputRef}
           type="text"
           value={location}
           onChange={(e) => onLocationChange(e.target.value)}
-          onFocus={() => setHasFocus(true)}
-          onBlur={() => setHasFocus(false)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder="Location"
           className="bg-transparent outline-none flex-grow"
         />
       </div>
 
-      {showSuggestions && hasFocus && (
+      {showSuggestions && (
         <ul className="absolute left-0 right-0 bg-white rounded-lg shadow-lg mt-2 z-20">
           {suggestions.map((suggestion, index) => (
             <li
               key={index}
-              onClick={() => handleSuggestionClick(suggestion)}
+              onMouseDown={() => handleSuggestionClick(suggestion)}
               className="px-4 py-2 cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-200 last:border-none"
             >
               <div className="font-semibold">{suggestion.name}</div>

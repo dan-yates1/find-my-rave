@@ -39,7 +39,7 @@ const Map: React.FC<MapProps> = ({ events }) => {
 
         new mapboxgl.Marker({ color: "#3B82F6" }) // Customize marker color if needed
           .setLngLat([event.longitude, event.latitude])
-          .setPopup(popup) // Add popup with event title
+          .setPopup(popup)
           .addTo(map.current!);
       }
     });

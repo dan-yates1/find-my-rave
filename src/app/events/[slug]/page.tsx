@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import Map from "@/components/Map";
 
 const prisma = new PrismaClient();
 
@@ -53,21 +54,27 @@ const EventDetailsPage = async ({ params }: EventDetailsPageProps) => {
             <p className="text-lg font-semibold">Location</p>
             <p className="text-gray-700">{event.location}</p>
           </div>
+
+          <div className="mb-6">
+            <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition duration-300 w-full">
+              Buy Tickets
+            </button>
+          </div>
         </div>
 
-        {/* Right Column: Ticket and Actions */}
+        {/* Right Column: Map and Actions */}
         <div className="lg:w-1/3">
-          <div className="border border-gray-300 p-4 rounded-lg shadow-lg">
-            <p className="text-2xl font-bold mb-4">From £165</p>
-            <a
-              href={event.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full text-center bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition"
-            >
-              Get Tickets
-            </a>
-          </div>
+          {/* Map Component */}
+          <Map
+            events={[
+              {
+                id: event.id,
+                title: event.title,
+                latitude: event.latitude,
+                longitude: event.longitude,
+              },
+            ]}
+          />
         </div>
       </div>
     </div>

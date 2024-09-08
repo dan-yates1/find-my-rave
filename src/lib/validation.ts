@@ -14,7 +14,7 @@ export const createEventSchema = z.object({
     .string()
     .optional()
     .transform((value) => (value ? parseFloat(value) : undefined)),
-  link: z.string().url({ message: "Must be a valid URL" }).optional(),
+  link: z.string().url({ message: "Must be a valid URL" }),
   image: z.any().optional(), // Expect a file here
   imageUrl: z.string().optional(),
 });

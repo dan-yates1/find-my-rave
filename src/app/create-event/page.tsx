@@ -65,7 +65,7 @@ const CreateEventPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-10 px-4">
+    <div className="max-w-5xl mx-auto py-10 px-4 border rounded-lg p-4 mt-10 mb-1">
       <h1 className="text-3xl font-bold mb-8">Create a New Event</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Title */}

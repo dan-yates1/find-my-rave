@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -11,7 +12,7 @@ export default function Home() {
         backgroundRepeat: "no-repeat",
       }}
     >
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 filter grayscale">
         {/* Background Video */}
         <video
           autoPlay
@@ -32,12 +33,16 @@ export default function Home() {
           Find the best raves and music events near you. Let the beat guide you.
         </p>
         <div className="mt-8 space-x-4">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition duration-300">
-            Find Events
-          </button>
-          <button className="bg-transparent border-2 border-white hover:bg-white hover:text-gray-900 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition duration-300">
-            Create an Event
-          </button>
+          <Link href="/find-events">
+            <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition duration-300">
+              Find Events
+            </button>
+          </Link>
+          <Link href="/create-event">
+            <button className="bg-transparent border-2 border-white hover:bg-white hover:text-gray-900 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition duration-300">
+              Create an Event
+            </button>
+          </Link>
         </div>
       </div>
     </div>

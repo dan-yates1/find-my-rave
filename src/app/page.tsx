@@ -12,7 +12,7 @@ export default function Home() {
         backgroundRepeat: "no-repeat",
       }}
     >
-      <div className="absolute inset-0 filter grayscale">
+      <div className="absolute inset-0 filter">
         {/* Background Video */}
         <video
           autoPlay

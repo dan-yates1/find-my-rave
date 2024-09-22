@@ -5,6 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createEventSchema, CreateEventFormData } from "@/lib/validation";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 const CreateEventPage: React.FC = () => {
   const router = useRouter();
@@ -65,7 +67,7 @@ const CreateEventPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-10 px-4 border rounded-lg p-4 mt-10 mb-1">
+    <div className="max-w-5xl mx-auto py-10 border rounded-lg p-4 m-10">
       <h1 className="text-3xl font-bold mb-8">Create a New Event</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Title */}
@@ -76,7 +78,7 @@ const CreateEventPage: React.FC = () => {
           >
             Event Title
           </label>
-          <input
+          <Input
             id="title"
             type="text"
             {...register("title")}
@@ -95,7 +97,7 @@ const CreateEventPage: React.FC = () => {
           >
             Description
           </label>
-          <textarea
+          <Textarea
             id="description"
             {...register("description")}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
@@ -115,7 +117,7 @@ const CreateEventPage: React.FC = () => {
           >
             Start Date
           </label>
-          <input
+          <Input
             id="startDate"
             type="datetime-local"
             {...register("startDate")}
@@ -136,7 +138,7 @@ const CreateEventPage: React.FC = () => {
           >
             End Date
           </label>
-          <input
+          <Input
             id="endDate"
             type="datetime-local"
             {...register("endDate")}
@@ -157,7 +159,7 @@ const CreateEventPage: React.FC = () => {
           >
             Location
           </label>
-          <input
+          <Input
             id="location"
             type="text"
             {...register("location")}
@@ -178,7 +180,7 @@ const CreateEventPage: React.FC = () => {
           >
             Latitude (optional)
           </label>
-          <input
+          <Input
             id="latitude"
             type="text"
             {...register("latitude")}
@@ -199,7 +201,7 @@ const CreateEventPage: React.FC = () => {
           >
             Longitude (optional)
           </label>
-          <input
+          <Input
             id="longitude"
             type="text"
             {...register("longitude")}
@@ -220,7 +222,7 @@ const CreateEventPage: React.FC = () => {
           >
             Event Link
           </label>
-          <input
+          <Input
             id="link"
             type="url"
             {...register("link")}
@@ -239,7 +241,7 @@ const CreateEventPage: React.FC = () => {
           >
             Upload Image
           </label>
-          <input
+          <Input
             id="image"
             type="file"
             {...register("image")}

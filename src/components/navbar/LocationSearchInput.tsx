@@ -62,7 +62,7 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
   const handleSuggestionClick = (suggestion: LocationSuggestion) => {
     onLocationChange(suggestion.name);
     setHasFocus(false);
-    inputRef.current?.blur(); // Explicitly blur the input after selection
+    inputRef.current?.blur();
   };
 
   return (

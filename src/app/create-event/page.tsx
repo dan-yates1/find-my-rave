@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -11,39 +11,84 @@ import { Textarea } from "@/components/ui/textarea";
 const CreateEventPage: React.FC = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
+  const suggestionsRef = useRef<HTMLUListElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [hasFocus, setHasFocus] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
+    watch,
   } = useForm<CreateEventFormData>({
     resolver: zodResolver(createEventSchema),
   });
 
+  const location = watch("location");
+
+  useEffect(() => {
+    const fetchLocationSuggestions = async () => {
+      if (location && location.length > 2) {
+        try {
+          const response = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+              location
+            )}.json?access_token=${
+              process.env.NEXT_PUBLIC_MAPBOX_API_KEY
+            }&types=place,address&limit=5`
+          );
+          const data = await response.json();
+          const suggestions = data.features.map(
+            (feature: any) => feature.place_name
+          );
+          setLocationSuggestions(suggestions);
+        } catch (error) {
+          console.error("Error fetching location suggestions:", error);
+        }
+      } else {
+        setLocationSuggestions([]);
+      }
+    };
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(fetchLocationSuggestions, 300);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [location]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node)
+      ) {
+        setLocationSuggestions([]);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setValue("location", suggestion);
+    setHasFocus(false);
+    setLocationSuggestions([]);
+  };
+
   const onSubmit = async (data: CreateEventFormData) => {
     setLoading(true);
-
-    let imageUrl = "";
-
-    // Handle image upload if provided
-    if (data.image && data.image.length > 0) {
-      const formData = new FormData();
-      formData.append("file", data.image[0]);
-
-      try {
-        const uploadResponse = await fetch("/api/upload-image", {
-          method: "POST",
-          body: formData,
-        });
-
-        const uploadResult = await uploadResponse.json();
-        imageUrl = uploadResult.imageUrl;
-      } catch (error) {
-        console.error("Failed to upload image:", error);
-        setLoading(false);
-        return;
-      }
-    }
 
     try {
       const response = await fetch("/api/events", {
@@ -51,14 +96,41 @@ const CreateEventPage: React.FC = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...data, imageUrl }),
+        body: JSON.stringify(data),
       });
 
-      if (response.ok) {
-        router.push("/find-events");
-      } else {
+      if (!response.ok) {
         console.error("Failed to create event");
+        setLoading(false);
+        return;
       }
+
+      let imageUrl = "";
+
+      if (data.image && data.image.length > 0) {
+        const formData = new FormData();
+        formData.append("file", data.image[0]);
+
+        const uploadResponse = await fetch("/api/upload-image", {
+          method: "POST",
+          body: formData,
+        });
+
+        const uploadResult = await uploadResponse.json();
+        imageUrl = uploadResult.imageUrl;
+
+        const responseData = await response.json();
+        const eventId = responseData.id;
+        await fetch(`/api/events/${eventId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ imageUrl }),
+        });
+      }
+
+      router.push("/find-events");
     } catch (error) {
       console.error("An error occurred:", error);
     } finally {
@@ -152,7 +224,7 @@ const CreateEventPage: React.FC = () => {
         </div>
 
         {/* Location */}
-        <div>
+        <div className="relative">
           <label
             htmlFor="location"
             className="block text-sm font-medium text-gray-700"
@@ -162,6 +234,7 @@ const CreateEventPage: React.FC = () => {
           <Input
             id="location"
             type="text"
+            onFocus={() => setHasFocus(true)}
             {...register("location")}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
           />
@@ -169,6 +242,21 @@ const CreateEventPage: React.FC = () => {
             <p className="text-red-500 text-sm mt-1">
               {errors.location?.message}
             </p>
+          )}
+          {hasFocus && locationSuggestions.length > 0 && (
+            <ul className="absolute left-0 right-0 bg-white rounded-lg shadow-lg mt-2 z-20">
+              {locationSuggestions.map((suggestion, index) => (
+                <li
+                  key={index}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  className="px-4 py-2 cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-200 last:border-none"
+                >
+                  <div className="font-semibold">{suggestion}</div>
+                  <div className="text-sm text-gray-500">{suggestion}</div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 

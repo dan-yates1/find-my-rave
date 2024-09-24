@@ -6,14 +6,8 @@ export const createEventSchema = z.object({
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   location: z.string().min(1, "Location is required"),
-  latitude: z
-    .string()
-    .optional()
-    .transform((value) => (value ? parseFloat(value) : undefined)),
-  longitude: z
-    .string()
-    .optional()
-    .transform((value) => (value ? parseFloat(value) : undefined)),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
   link: z.string().url({ message: "Must be a valid URL" }),
   image: z.any().optional(), // Expect a file here
   imageUrl: z.string().optional(),

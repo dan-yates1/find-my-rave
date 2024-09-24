@@ -18,6 +18,12 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
     setInput(e.target.value);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
   const handleSearch = () => {
     let city = location;
 
@@ -43,6 +49,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
           type="text"
           value={input}
           onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
           placeholder="Search for..."
           className="bg-transparent outline-none flex-grow"
         />

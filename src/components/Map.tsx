@@ -15,9 +15,10 @@ interface Event {
 
 interface MapProps {
   events: Event[];
+  searchLocation?: { latitude: number; longitude: number };
 }
 
-const Map: React.FC<MapProps> = ({ events }) => {
+const Map: React.FC<MapProps> = ({ events, searchLocation }) => {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
 
@@ -25,16 +26,25 @@ const Map: React.FC<MapProps> = ({ events }) => {
   useEffect(() => {
     if (map.current) return; // Skip if map is already initialized
 
+    let initialCenter: [number, number];
+    if (searchLocation) {
+      initialCenter = [searchLocation.longitude, searchLocation.latitude];
+    } else if (events.length === 1 && events[0].latitude !== null && events[0].longitude !== null) {
+      initialCenter = [events[0].longitude, events[0].latitude];
+    } else {
+      initialCenter = [-0.1276, 51.5074]; // Default to London
+    }
+
     map.current = new mapboxgl.Map({
       container: mapContainer.current!,
       style: "mapbox://styles/mapbox/streets-v11",
-      center: [-0.1276, 51.5074], // Default to London
+      center: initialCenter,
       zoom: 9,
       attributionControl: false, // Disable default attribution control
     });
 
     // ... other map setup code ...
-  }, []); // Empty dependency array to run only once
+  }, [events, searchLocation]); // Add searchLocation to the dependency array
 
   // Effect to add markers when events change
   useEffect(() => {

@@ -155,7 +155,7 @@ const CreateEventPage: React.FC = () => {
       <div className="max-w-5xl mx-auto py-10 border rounded-lg p-4 m-10">
         {notification && (
           <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="absolute inset-0 bg-black bg-opacity-50 transition-opacity" />
+            <div className="absolute inset-0 transition-opacity" />
             <div
               className={`p-4 rounded-md shadow-lg ${
                 notification.type === "success"

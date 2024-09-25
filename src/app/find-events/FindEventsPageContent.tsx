@@ -5,11 +5,12 @@ import { useSearchParams } from "next/navigation";
 import EventCard from "@/components/EventCard";
 import SkeletonEventCard from "@/components/SkeletonEventCard";
 import Map from "@/components/Map";
-import { capitalizeFirstLetter } from "@/lib/utils";
+import { capitalizeFirstLetter, getLatLon } from "@/lib/utils";
 
 const FindEventsPageContent = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true); // Add a loading state
+  const [centreLatLon, setCentreLatLon] = useState<number[]>();
   const searchParams = useSearchParams();
   const eventQuery = searchParams.get("event") || "";
   const locationQuery = searchParams.get("location") || "";
@@ -23,7 +24,13 @@ const FindEventsPageContent = () => {
         );
         if (response.ok) {
           const data = await response.json();
-          setEvents(data.events); // Append new events
+          setEvents(data.events);
+          const location = await getLatLon(locationQuery);
+          if (location) {
+            setCentreLatLon([location.lat, location.lon]);
+          } else {
+            console.error("Failed to fetch location");
+          }
         } else {
           console.error("Failed to fetch events");
         }

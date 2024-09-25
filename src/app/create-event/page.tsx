@@ -17,7 +17,10 @@ const CreateEventPage: React.FC = () => {
   const suggestionsRef = useRef<HTMLUListElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [hasFocus, setHasFocus] = useState(false);
-  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [notification, setNotification] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const {
     register,
@@ -101,20 +104,6 @@ const CreateEventPage: React.FC = () => {
       data.latitude = latitude;
       data.longitude = longitude;
 
-      const response = await fetch("/api/events", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        console.error("Failed to create event");
-        setLoading(false);
-        return;
-      }
-
       let imageUrl = "";
 
       if (data.image && data.image.length > 0) {
@@ -128,25 +117,34 @@ const CreateEventPage: React.FC = () => {
 
         const uploadResult = await uploadResponse.json();
         imageUrl = uploadResult.imageUrl;
-
-        const responseData = await response.json();
-        const eventId = responseData.id;
-        await fetch(`/api/events/${eventId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ imageUrl }),
-        });
       }
 
-      setNotification({ type: 'success', message: 'Event created successfully!' });
+      // Include imageUrl in the initial event creation
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...data, imageUrl }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create event");
+      }
+
+      setNotification({
+        type: "success",
+        message: "Event created successfully!",
+      });
       setTimeout(() => {
         router.push("/find-events");
       }, 2000);
     } catch (error) {
       console.error("An error occurred:", error);
-      setNotification({ type: 'error', message: 'Failed to create event. Please try again.' });
+      setNotification({
+        type: "error",
+        message: "Failed to create event. Please try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -158,10 +156,14 @@ const CreateEventPage: React.FC = () => {
         {notification && (
           <div className="fixed inset-0 flex items-center justify-center z-50">
             <div className="absolute inset-0 bg-black bg-opacity-50 transition-opacity" />
-            <div className={`p-4 rounded-md shadow-lg ${
-              notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-            } flex items-center space-x-2`}>
-              {notification.type === 'success' ? (
+            <div
+              className={`p-4 rounded-md shadow-lg ${
+                notification.type === "success"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-red-100 text-red-800"
+              } flex items-center space-x-2`}
+            >
+              {notification.type === "success" ? (
                 <CheckCircle2 className="h-5 w-5" />
               ) : (
                 <AlertCircle className="h-5 w-5" />
@@ -188,7 +190,9 @@ const CreateEventPage: React.FC = () => {
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
             {errors.title && (
-              <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.title.message}
+              </p>
             )}
           </div>
 
@@ -306,7 +310,9 @@ const CreateEventPage: React.FC = () => {
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
             {errors.link && (
-              <p className="text-red-500 text-sm mt-1">{errors.link?.message}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.link?.message}
+              </p>
             )}
           </div>
 

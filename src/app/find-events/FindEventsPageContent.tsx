@@ -49,11 +49,15 @@ const FindEventsPageContent = () => {
       {/* Event List */}
       <div className="lg:w-1/2 overflow-y-auto p-6 space-y-4 w-full">
         <h2 className="text-3xl font-bold mb-4">{titleText}</h2>
-        {loading
-          ? Array(6)
-              .fill(0)
-              .map((_, index) => <SkeletonEventCard key={index} />) // Render 6 skeleton cards
-          : events.map((event) => <EventCard key={event.id} event={event} />)}
+        {loading ? (
+          Array(6)
+            .fill(0)
+            .map((_, index) => <SkeletonEventCard key={index} />) // Render 6 skeleton cards
+        ) : events.length > 0 ? (
+          events.map((event) => <EventCard key={event.id} event={event} />) // Render events
+        ) : (
+          <p className="text-lg text-gray-600">No events found.</p> // Display message when no events are found
+        )}
         {<div id="bottom-element" className="h-8"></div>}
       </div>
 

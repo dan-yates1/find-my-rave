@@ -48,10 +48,6 @@ const EventCard = ({ event }: EventCardProps) => {
             <MapIcon className="w-5 h-5 text-blue-600" />
             {event.location}
           </span>
-          <a href={event.link} className="flex items-center gap-1">
-            <TicketIcon className="w-5 h-5 text-blue-600" />
-            Tickets
-          </a>
         </div>
       </div>
 

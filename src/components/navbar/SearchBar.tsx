@@ -59,7 +59,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
       <div className="border-l border-gray-300 h-6 mx-2"></div>
 
       {/* Location input */}
-      <LocationSearchInput location={location} onLocationChange={setLocation} />
+      <LocationSearchInput location={location} onLocationChange={setLocation} onKeyDown={handleKeyDown} />
 
       {/* Search button */}
       <button

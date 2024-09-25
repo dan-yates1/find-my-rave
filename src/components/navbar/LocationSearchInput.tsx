@@ -11,11 +11,13 @@ interface LocationSuggestion {
 interface LocationSearchInputProps {
   location: string;
   onLocationChange: (location: string) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
 const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
   location,
   onLocationChange,
+  onKeyDown,
 }) => {
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [hasFocus, setHasFocus] = useState(false);
@@ -65,6 +67,10 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
     inputRef.current?.blur();
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onLocationChange(e.target.value);
+  };
+
   return (
     <div className="relative flex-grow">
       <div className="flex items-center space-x-2">
@@ -74,6 +80,7 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
           type="text"
           value={location}
           onChange={(e) => onLocationChange(e.target.value)}
+          onKeyDown={onKeyDown}
           onFocus={() => setHasFocus(true)}
           onBlur={() => setHasFocus(false)}
           placeholder="Location"

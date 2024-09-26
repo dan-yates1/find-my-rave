@@ -4,9 +4,14 @@ import { useState } from "react";
 import SearchBar from "./SearchBar";
 import Link from "next/link";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { useSession, signOut } from "next-auth/react";
+import Image from "next/image";
+
+// ... existing code ...
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { data: session } = useSession();
 
   const handleSearch = ({
     input,
@@ -40,20 +45,54 @@ export default function Navbar() {
             Find Events
           </Link>
           <Link
-            href="/sign-up"
-            className="text-gray-700 hover:text-gray-900"
-          >
-            Sign Up
-          </Link>
-          <Link href="/login" className="text-gray-700 hover:text-gray-900">
-            Login
-          </Link>
-          <Link
             href="/create-event"
-            className="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700"
+            className="text-gray-700 hover:text-gray-900"
           >
             Create Event
           </Link>
+          {session?.user?.image ? (
+            <Image
+              alt="Profile picture"
+              src={session.user.image}
+              width={100}
+              height={100}
+              className="rounded-full w-12 h-12"
+              onClick={() => signOut()}
+            />
+          ) : (
+            session && (
+              <div
+                onClick={() => signOut()}
+                style={{
+                  width: 48,
+                  height: 48,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#ccc",
+                  borderRadius: "50%",
+                }}
+              >
+                {session?.user?.name?.charAt(0)}
+              </div>
+            )
+          )}
+          {!session && (
+            <>
+              <Link
+                href="/login-register"
+                className="text-gray-700 hover:text-gray-900"
+              >
+                Sign Up
+              </Link>
+              <Link
+                href="/login-register"
+                className="text-gray-700 hover:text-gray-900"
+              >
+                Login
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Hamburger Menu for Mobile */}
@@ -81,18 +120,34 @@ export default function Navbar() {
             >
               Find Events
             </Link>
-            <Link
-              href="/sign-up"
-              className="text-gray-700 hover:text-gray-900"
-            >
-              Sign Up
-            </Link>
-            <Link href="/login" className="text-gray-700 hover:text-gray-900">
-              Login
-            </Link>
+            {session?.user?.image ? (
+              <Image
+                alt="Profile picture"
+                src={session.user.image}
+                width={32}
+                height={32}
+                className="rounded-full"
+                onClick={() => signOut()}
+              />
+            ) : (
+              <>
+                <Link
+                  href="/sign-up"
+                  className="text-gray-700 hover:text-gray-900"
+                >
+                  Sign Up
+                </Link>
+                <Link
+                  href="/login"
+                  className="text-gray-700 hover:text-gray-900"
+                >
+                  Login
+                </Link>
+              </>
+            )}
             <Link
               href="/create-event"
-              className="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700"
+              className="text-gray-700 hover:text-gray-900"
             >
               Create Event
             </Link>

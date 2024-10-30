@@ -63,6 +63,7 @@ export default function Component() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      disabled={true}
                     />
                   </div>
                   <div>
@@ -72,6 +73,7 @@ export default function Component() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      disabled={true}
                     />
                   </div>
                   <Button
@@ -98,6 +100,7 @@ export default function Component() {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       required
+                      disabled={true}
                     />
                   </div>
                   <div>
@@ -107,6 +110,7 @@ export default function Component() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      disabled={true}
                     />
                   </div>
                   <div>
@@ -116,6 +120,7 @@ export default function Component() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      disabled={true}
                     />
                   </div>
                   <Button

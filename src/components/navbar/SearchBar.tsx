@@ -3,20 +3,14 @@
 import React, { useState } from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import LocationSearchInput from "./LocationSearchInput";
-import { useRouter } from "next/navigation";
 
 interface SearchBarProps {
-  onSearch: (searchParams: { input: string; location: string }) => void;
+  onSearch: (params: { input: string; location: string }) => void;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   const [input, setInput] = useState<string>("");
   const [location, setLocation] = useState<string>("");
-  const router = useRouter();
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInput(e.target.value);
-  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -25,49 +19,45 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   };
 
   const handleSearch = () => {
-    let city = location;
-
-    const locationParts = location.split(",");
-    if (locationParts.length > 0) {
-      city = locationParts[0].trim();
-    }
-
-    const query = new URLSearchParams({
-      event: input,
-      location: city,
-    }).toString();
-
-    router.push(`/find-events?${query}`);
+    onSearch({ input, location });
   };
 
   return (
-    <div className="flex items-center border border-gray-300 rounded-full bg-gray-50 px-4 py-2 w-full">
-      {/* Search input */}
-      <div className="flex items-center space-x-2 flex-grow">
-        <MagnifyingGlassIcon className="w-5 h-5 text-gray-400" />
-        <input
-          type="text"
-          value={input}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Search for..."
-          className="bg-transparent outline-none flex-grow"
-        />
+    <div className="flex items-center w-full max-w-2xl mx-auto py-2">
+      <div className="flex items-center w-full bg-gray-50 dark:bg-gray-800 rounded-full border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
+        {/* Event Search */}
+        <div className="flex items-center flex-1 min-w-0 pl-4">
+          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search events..."
+            className="w-full bg-transparent border-none outline-none px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+          />
+        </div>
+
+        {/* Divider */}
+        <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2"></div>
+
+        {/* Location Search */}
+        <div className="flex items-center flex-1 min-w-0">
+          <LocationSearchInput 
+            location={location} 
+            onLocationChange={setLocation} 
+            onKeyDown={handleKeyDown}
+          />
+          
+          {/* Search Button */}
+          <button
+            onClick={handleSearch}
+            className="ml-2 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors mr-1"
+          >
+            <MagnifyingGlassIcon className="w-5 h-5" />
+          </button>
+        </div>
       </div>
-
-      {/* Divider */}
-      <div className="border-l border-gray-300 h-6 mx-2"></div>
-
-      {/* Location input */}
-      <LocationSearchInput location={location} onLocationChange={setLocation} onKeyDown={handleKeyDown} />
-
-      {/* Search button */}
-      <button
-        onClick={handleSearch}
-        className="ml-3 p-2 bg-blue-600 rounded-full text-white hover:bg-blue-700"
-      >
-        <MagnifyingGlassIcon className="w-5 h-5" />
-      </button>
     </div>
   );
 };

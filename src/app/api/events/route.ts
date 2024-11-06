@@ -23,8 +23,10 @@ export async function POST(request: Request) {
         longitude: data.longitude || null,
         link: data.link,
         imageUrl: data.imageUrl || null,
+        price: data.price,
+        eventType: data.eventType,
         slug,
-        approved: true,
+        approved: false,
       },
     });
 

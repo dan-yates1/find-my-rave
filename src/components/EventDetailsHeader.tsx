@@ -27,7 +27,7 @@ const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
       {/* Hero Image */}
       <div className="relative h-[400px] w-full">
         <Image
-          src={event.imageUrl || "/rave-bg.jpg"}
+          src={event.imageUrl || "/event-placeholder2.jpg"}
           alt={event.title}
           fill
           className="object-cover"
@@ -59,7 +59,7 @@ const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
           {/* Custom styled save button for event details */}
           <SaveEventButton 
             eventId={event.id} 
-            className="text-white hover:text-white/80 w-8 h-8 !p-1.5 !hover:bg-transparent"
+            className="text-gray-600 bg-gray-100/50 w-8 h-8 !p-1.5 !hover:bg-transparent"
           />
         </div>
       </div>

@@ -15,17 +15,25 @@ import SaveEventButton from "./SaveEventButton";
 interface EventCardProps {
   event: Event;
   saved?: boolean;
+  onHover?: (eventId: string | null) => void;
 }
 
-const EventCard = ({ event, saved = false }: EventCardProps) => {
+const EventCard = ({ event, saved = false, onHover }: EventCardProps) => {
   const router = useRouter();
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Don't navigate if clicking the save button
     if ((e.target as HTMLElement).closest('button')) {
       return;
     }
     router.push(`/events/${event.slug}`);
+  };
+
+  const handleMouseEnter = () => {
+    onHover?.(event.id);
+  };
+
+  const handleMouseLeave = () => {
+    onHover?.(null);
   };
 
   // Format the date nicely
@@ -43,6 +51,8 @@ const EventCard = ({ event, saved = false }: EventCardProps) => {
   return (
     <div
       onClick={handleCardClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       className="group relative overflow-hidden rounded-2xl hover-effect border border-gray-200/20 dark:border-gray-700/20 cursor-pointer"
     >
       {/* Save Button - Only visible on hover */}
@@ -54,7 +64,7 @@ const EventCard = ({ event, saved = false }: EventCardProps) => {
         {/* Image Container */}
         <div className="relative w-full md:w-48 h-48 md:h-32 overflow-hidden rounded-xl">
           <Image
-            src={event.imageUrl || "/rave-bg.jpg"}
+            src={event.imageUrl || "/event-placeholder2.jpg"}
             alt={event.title}
             fill
             className="object-cover"

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { createEventSchema, CreateEventFormData } from "@/lib/validation";
+import { createEventSchema, CreateEventFormData, EVENT_TYPES } from "@/lib/validation";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { getLatLon } from "@/lib/utils";
@@ -336,12 +336,53 @@ const CreateEventPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Event Type & Price */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Event Type
+                </label>
+                <select
+                  {...register("eventType")}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500"
+                  defaultValue=""
+                >
+                  <option value="" disabled>Select event type</option>
+                  {EVENT_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </option>
+                  ))}
+                </select>
+                {errors.eventType && (
+                  <p className="mt-1 text-sm text-red-600">{errors.eventType.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ticket Price (£)
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  {...register("price", { valueAsNumber: true })}
+                  className="w-full"
+                  placeholder="0.00"
+                />
+                {errors.price && (
+                  <p className="mt-1 text-sm text-red-600">{errors.price.message}</p>
+                )}
+              </div>
+            </div>
+
             {/* Submit Button */}
-            <div className="flex justify-end">
+            <div className="flex justify-center">
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-primary text-white px-8 py-3 rounded-xl font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                className="bg-primary text-white px-8 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 {loading ? "Creating..." : "Create Event"}
               </button>

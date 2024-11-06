@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import EventCard from "@/components/EventCard";
 import SkeletonEventCard from "@/components/SkeletonEventCard";
 import Map from "@/components/Map";
 import { capitalizeFirstLetter, getLatLon } from "@/lib/utils";
 import { CalendarIcon, FunnelIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import debounce from "lodash/debounce";
 
 const FindEventsPageContent = () => {
   const [events, setEvents] = useState<any[]>([]);
@@ -20,40 +21,62 @@ const FindEventsPageContent = () => {
     eventType: 'all',
   });
   const [centreLatLon, setCentreLatLon] = useState<[number, number]>();
+  const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
   const eventQuery = searchParams.get("event") || "";
   const locationQuery = searchParams.get("location") || "";
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      setLoading(true);
+  // Debounced fetch function
+  const debouncedFetch = useCallback(
+    debounce(async (params: {
+      eventQuery: string;
+      locationQuery: string;
+      filters: typeof filters;
+      page: number;
+    }) => {
       try {
-        const response = await fetch(
-          `/api/events/search?event=${eventQuery}&location=${locationQuery}&page=${page}&limit=10`
-        );
+        const queryParams = new URLSearchParams({
+          event: params.eventQuery,
+          location: params.locationQuery,
+          dateRange: params.filters.dateRange,
+          priceRange: params.filters.priceRange,
+          eventType: params.filters.eventType,
+          page: params.page.toString(),
+          limit: "10",
+        });
+
+        const response = await fetch(`/api/events/search?${queryParams}`);
+        
         if (response.ok) {
           const data = await response.json();
-          setEvents(page === 0 ? data.events : [...events, ...data.events]);
+          setEvents(params.page === 0 ? data.events : (prev) => [...prev, ...data.events]);
           setHasMore(data.hasMore);
-          if (page === 0) {
-            const location = await getLatLon(locationQuery);
+          if (params.page === 0) {
+            const location = await getLatLon(params.locationQuery);
             if (location) {
               setCentreLatLon([location.lat, location.lon]);
             }
           }
-        } else {
-          console.error("Failed to fetch events");
         }
       } catch (error) {
         console.error("Error fetching events:", error);
       } finally {
         setLoading(false);
       }
-    };
+    }, 300),
+    []
+  );
 
-    fetchEvents();
-  }, [eventQuery, locationQuery, page]);
+  // Effect to trigger fetches
+  useEffect(() => {
+    setLoading(true);
+    debouncedFetch({ eventQuery, locationQuery, filters, page });
+
+    return () => {
+      debouncedFetch.cancel();
+    };
+  }, [eventQuery, locationQuery, filters, page, debouncedFetch]);
 
   const loadMore = () => {
     setPage(prev => prev + 1);
@@ -61,7 +84,7 @@ const FindEventsPageContent = () => {
 
   useEffect(() => {
     setPage(0);
-  }, [eventQuery, locationQuery]);
+  }, [eventQuery, locationQuery, filters]);
 
   const titleText =
     eventQuery || locationQuery
@@ -70,9 +93,28 @@ const FindEventsPageContent = () => {
         }`
       : "All events";
 
+  const handleFilterChange = (
+    filterType: "dateRange" | "priceRange" | "eventType",
+    value: string
+  ) => {
+    setPage(0); // Reset to first page when filters change
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: value,
+    }));
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      dateRange: 'all',
+      priceRange: 'all',
+      eventType: 'all',
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
-      <div className="flex flex-col lg:flex-row max-w-[2000px] mx-auto">
+      <div className="flex flex-col lg:flex-row max-w-[2000px] mx-auto relative">
         {/* Mobile Filters */}
         <div 
           className={`fixed inset-0 z-40 lg:hidden transition-opacity duration-300 ease-in-out ${
@@ -116,7 +158,7 @@ const FindEventsPageContent = () => {
                           name="dateRange"
                           value={range.toLowerCase()}
                           checked={filters.dateRange === range.toLowerCase()}
-                          onChange={(e) => setFilters({...filters, dateRange: e.target.value})}
+                          onChange={(e) => handleFilterChange("dateRange", e.target.value)}
                           className="text-primary"
                         />
                         <span className="text-sm">{range}</span>
@@ -136,7 +178,7 @@ const FindEventsPageContent = () => {
                           name="eventType"
                           value={type.toLowerCase()}
                           checked={filters.eventType === type.toLowerCase()}
-                          onChange={(e) => setFilters({...filters, eventType: e.target.value})}
+                          onChange={(e) => handleFilterChange("eventType", e.target.value)}
                           className="text-primary"
                         />
                         <span className="text-sm">{type}</span>
@@ -156,7 +198,7 @@ const FindEventsPageContent = () => {
                           name="priceRange"
                           value={range.toLowerCase()}
                           checked={filters.priceRange === range.toLowerCase()}
-                          onChange={(e) => setFilters({...filters, priceRange: e.target.value})}
+                          onChange={(e) => handleFilterChange("priceRange", e.target.value)}
                           className="text-primary"
                         />
                         <span className="text-sm">{range}</span>
@@ -165,6 +207,12 @@ const FindEventsPageContent = () => {
                   </div>
                 </div>
               </div>
+              <button 
+                onClick={resetFilters}
+                className="text-sm text-primary hover:text-primary/80"
+              >
+                Reset Filters
+              </button>
             </div>
           </div>
         </div>
@@ -201,7 +249,7 @@ const FindEventsPageContent = () => {
                         name="dateRange"
                         value={range.toLowerCase()}
                         checked={filters.dateRange === range.toLowerCase()}
-                        onChange={(e) => setFilters({...filters, dateRange: e.target.value})}
+                        onChange={(e) => handleFilterChange("dateRange", e.target.value)}
                         className="text-primary"
                       />
                       <span className="text-sm">{range}</span>
@@ -221,7 +269,7 @@ const FindEventsPageContent = () => {
                         name="eventType"
                         value={type.toLowerCase()}
                         checked={filters.eventType === type.toLowerCase()}
-                        onChange={(e) => setFilters({...filters, eventType: e.target.value})}
+                        onChange={(e) => handleFilterChange("eventType", e.target.value)}
                         className="text-primary"
                       />
                       <span className="text-sm">{type}</span>
@@ -241,7 +289,7 @@ const FindEventsPageContent = () => {
                         name="priceRange"
                         value={range.toLowerCase()}
                         checked={filters.priceRange === range.toLowerCase()}
-                        onChange={(e) => setFilters({...filters, priceRange: e.target.value})}
+                        onChange={(e) => handleFilterChange("priceRange", e.target.value)}
                         className="text-primary"
                       />
                       <span className="text-sm">{range}</span>
@@ -254,7 +302,7 @@ const FindEventsPageContent = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {/* Mobile Filters Toggle */}
           <div className="lg:hidden p-4 border-b">
             <button
@@ -267,45 +315,65 @@ const FindEventsPageContent = () => {
           </div>
 
           {/* Events List */}
-          <div className="p-6 lg:p-8">
+          <div className="p-6 lg:p-8 pb-20">
             <h2 className="text-3xl font-bold text-gray-900 mb-6">
               {titleText}
             </h2>
             
             <div className="grid gap-6">
-              {loading && page === 0 ? (
+              {loading ? (
                 Array(3).fill(0).map((_, index) => (
                   <SkeletonEventCard key={index} />
                 ))
-              ) : events.length > 0 ? (
-                <>
-                  {events.map((event) => (
-                    <EventCard key={event.id} event={event} />
-                  ))}
-                  {hasMore && (
-                    <div className="flex justify-center py-6">
-                      <button
-                        onClick={loadMore}
-                        disabled={loading}
-                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                      >
-                        {loading ? 'Loading...' : 'Show More Events'}
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : (
+              ) : events.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-xl text-gray-500">No events found</p>
                 </div>
+              ) : (
+                events.map((event) => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    onHover={setHoveredEventId}
+                  />
+                ))
               )}
             </div>
+            {hasMore && (
+              <div className="flex justify-center py-6">
+                <button
+                  onClick={loadMore}
+                  disabled={loading}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {loading ? 'Loading...' : 'Show More Events'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Map */}
-        <div className="hidden xl:block w-[600px] h-screen sticky top-0">
-          <Map events={events} />
+        {/* Map Container - Updated with padding */}
+        <div className="hidden xl:block w-[40%] max-w-[600px] h-[calc(100vh-5rem)] sticky top-16 right-0 p-4">
+          <div className="relative h-full rounded-xl overflow-hidden shadow-xl border border-gray-200/20">
+            <div className="absolute inset-0 rounded-xl overflow-hidden">
+              <Map 
+                events={events} 
+                centreLatLon={centreLatLon}
+                hoveredEventId={hoveredEventId}
+                className="w-full h-full"
+              />
+            </div>
+            
+            {/* Loading Overlay */}
+            {loading && (
+              <div className="absolute inset-0 bg-black/20 flex items-center justify-center backdrop-blur-sm rounded-xl">
+                <div className="bg-white/90 dark:bg-gray-800/90 p-4 rounded-lg shadow-lg">
+                  <div className="text-sm font-medium">Loading events...</div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

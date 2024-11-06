@@ -19,6 +19,8 @@ model Event {
   longitude   Float?
   link        String
   imageUrl    String?
+  price       Float    @default(0)
+  eventType   String   @default("other")
   approved    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

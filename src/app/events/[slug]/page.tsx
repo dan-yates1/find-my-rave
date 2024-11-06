@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Map from "@/components/Map";
 import { CalendarIcon, MapPinIcon, ClockIcon } from "@heroicons/react/24/outline";
+import EventDetailsHeader from "@/components/EventDetailsHeader";
 
 const prisma = new PrismaClient();
 
@@ -12,128 +13,108 @@ interface EventDetailsPageProps {
   };
 }
 
-const EventDetailsPage = async ({ params }: EventDetailsPageProps) => {
+export default async function EventDetailsPage({ params }: EventDetailsPageProps) {
   const event = await prisma.event.findUnique({
-    where: { slug: params.slug },
+    where: {
+      slug: params.slug,
+    },
   });
 
   if (!event) {
     notFound();
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
-      {/* Hero Section */}
-      <div className="relative h-[50vh] w-full">
-        <div className="absolute inset-0 bg-black/50 z-10" />
-        <Image
-          src={event.imageUrl || "/rave-bg.jpg"}
-          alt={event.title}
-          fill
-          className="object-cover"
-        />
-        <div className="relative z-20 h-full flex items-end">
-          <div className="container mx-auto px-4 pb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              {event.title}
-            </h1>
-            <div className="flex items-center gap-6 text-white/90">
-              <span className="flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5" />
-                {new Date(event.startDate).toLocaleDateString('en-GB', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </span>
-              <span className="flex items-center gap-2">
-                <MapPinIcon className="w-5 h-5" />
-                {event.location}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+  // Format the date nicely
+  const formattedDate = new Date(event.startDate).toLocaleString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
-      {/* Content Section */}
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+  const formattedTime = new Date(event.startDate).toLocaleString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return (
+    <div className="min-h-screen">
+      <EventDetailsHeader event={event} />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Event Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white rounded-2xl p-8 shadow-sm">
-              <h2 className="text-2xl font-semibold mb-4">About This Event</h2>
-              <p className="text-gray-600 whitespace-pre-wrap">
-                {event.description}
-              </p>
+            {/* About Section */}
+            <div className="bg-white rounded-2xl p-8">
+              <h2 className="text-2xl font-bold mb-4">About this event</h2>
+              <p className="text-gray-600 whitespace-pre-wrap">{event.description}</p>
             </div>
 
-            <div className="bg-white rounded-2xl p-8 shadow-sm">
-              <h2 className="text-2xl font-semibold mb-4">Event Schedule</h2>
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <ClockIcon className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Doors Open</h3>
-                    <p className="text-gray-600">
-                      {new Date(event.startDate).toLocaleTimeString('en-GB', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                  </div>
+            {/* Date & Time Section */}
+            <div className="bg-white rounded-2xl p-8">
+              <h2 className="text-2xl font-bold mb-4">Date and time</h2>
+              <div className="flex items-center gap-3 text-gray-600">
+                <CalendarIcon className="w-6 h-6" />
+                <div>
+                  <p>{formattedDate}</p>
+                  <p>{formattedTime}</p>
                 </div>
-                <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 p-3 rounded-lg">
-                    <ClockIcon className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Event Ends</h3>
-                    <p className="text-gray-600">
-                      {new Date(event.endDate).toLocaleTimeString('en-GB', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                  </div>
-                </div>
+              </div>
+            </div>
+
+            {/* Location Section */}
+            <div className="bg-white rounded-2xl p-8">
+              <h2 className="text-2xl font-bold mb-4">Location</h2>
+              <div className="flex items-center gap-3 text-gray-600 mb-4">
+                <MapPinIcon className="w-6 h-6 flex-shrink-0" />
+                <p>{event.location}</p>
+              </div>
+              {/* Map */}
+              <div className="h-[400px] rounded-xl overflow-hidden">
+                <Map events={[event]} />
               </div>
             </div>
           </div>
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24 space-y-6">
-              {/* Ticket Info */}
+            <div className="sticky top-24">
               <div className="bg-white rounded-2xl p-6 shadow-sm">
-                <button className="w-full bg-primary text-white py-4 rounded-xl font-medium hover:bg-primary/90 transition-colors">
-                  Get Tickets
-                </button>
-                <div className="mt-6 pt-6 border-t">
-                  <h3 className="font-medium mb-2">Share this event</h3>
-                  <div className="flex gap-4">
-                    {/* Add social share buttons */}
+                <h3 className="text-xl font-semibold mb-4">Event Details</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <CalendarIcon className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Date</p>
+                      <p className="font-medium">{formattedDate}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <ClockIcon className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Time</p>
+                      <p className="font-medium">{formattedTime}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <MapPinIcon className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm text-gray-500">Location</p>
+                      <p className="font-medium">{event.location}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Location */}
-              <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
-                <div className="h-48 relative">
-                  <Map
-                    events={[{
-                      id: event.id,
-                      title: event.title,
-                      latitude: event.latitude,
-                      longitude: event.longitude,
-                    }]}
-                  />
-                </div>
-                <div className="p-6">
-                  <h3 className="font-medium mb-2">Location</h3>
-                  <p className="text-gray-600">{event.location}</p>
+                <div className="mt-6">
+                  <a
+                    href={event.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full bg-blue-600 text-white text-center py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Get Tickets
+                  </a>
                 </div>
               </div>
             </div>
@@ -142,6 +123,4 @@ const EventDetailsPage = async ({ params }: EventDetailsPageProps) => {
       </div>
     </div>
   );
-};
-
-export default EventDetailsPage;
+}

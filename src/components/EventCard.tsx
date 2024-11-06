@@ -5,23 +5,28 @@ import { Event } from "@prisma/client";
 import Image from "next/image";
 import {
   MapIcon,
-  TicketIcon,
   ClockIcon,
   UsersIcon,
   CalendarIcon,
 } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
+import SaveEventButton from "./SaveEventButton";
 
 interface EventCardProps {
   event: Event;
+  saved?: boolean;
 }
 
-const EventCard = ({ event }: EventCardProps) => {
+const EventCard = ({ event, saved = false }: EventCardProps) => {
   const router = useRouter();
 
-  // Temporary price data (you can add this to your schema later)
-  const priceRange = "£20 - £30";
-  const ticketsLeft = Math.floor(Math.random() * 100); // Random number for demo
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking the save button
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    router.push(`/events/${event.slug}`);
+  };
 
   // Format the date nicely
   const formattedDate = new Date(event.startDate).toLocaleString("en-GB", {
@@ -37,9 +42,14 @@ const EventCard = ({ event }: EventCardProps) => {
 
   return (
     <div
-      onClick={() => router.push(`/events/${event.slug}`)}
-      className="group relative overflow-hidden rounded-2xl hover-effect glass-effect border border-gray-200/20 dark:border-gray-700/20 cursor-pointer"
+      onClick={handleCardClick}
+      className="group relative overflow-hidden rounded-2xl hover-effect border border-gray-200/20 dark:border-gray-700/20 cursor-pointer"
     >
+      {/* Save Button - Only visible on hover */}
+      <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <SaveEventButton eventId={event.id} initialSaved={saved} />
+      </div>
+
       <div className="flex flex-col md:flex-row gap-6 p-4">
         {/* Image Container */}
         <div className="relative w-full md:w-48 h-48 md:h-32 overflow-hidden rounded-xl">
@@ -47,21 +57,16 @@ const EventCard = ({ event }: EventCardProps) => {
             src={event.imageUrl || "/rave-bg.jpg"}
             alt={event.title}
             fill
-            className="object-cover group-hover:scale-110 transition-transform duration-300"
+            className="object-cover"
           />
         </div>
 
         {/* Content Container */}
         <div className="flex-1 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-blue-500 group-hover:text-blue-600transition-colors">
-                {event.title}
-              </h3>
-              <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                {ticketsLeft} tickets left
-              </span>
-            </div>
+            <h3 className="text-lg font-semibold text-blue-500 group-hover:text-blue-600 transition-colors">
+              {event.title}
+            </h3>
 
             {/* Event Details Grid */}
             <div className="grid grid-cols-2 gap-3 mt-3">
@@ -82,24 +87,6 @@ const EventCard = ({ event }: EventCardProps) => {
                 {Math.floor(Math.random() * 500)} attending
               </div>
             </div>
-          </div>
-
-          {/* Action Bar */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200/20 dark:border-gray-700/20">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                From {priceRange}
-              </span>
-              {/* {ticketsLeft < 20 && (
-                <span className="text-xs text-red-500 dark:text-red-400 font-medium px-2 py-1 bg-red-100 dark:bg-red-900/30 rounded-full">
-                  Selling fast
-                </span>
-              )} */}
-            </div>
-            <span className="flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400">
-              <TicketIcon className="w-4 h-4" />
-              View Details
-            </span>
           </div>
         </div>
       </div>

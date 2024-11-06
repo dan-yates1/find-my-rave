@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CalendarIcon, TicketIcon, UserIcon, CogIcon, CameraIcon } from "@heroicons/react/24/outline";
@@ -21,6 +21,23 @@ const ProfileContent = ({ user }: ProfileContentProps) => {
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [savedEvents, setSavedEvents] = useState<any[]>([]);
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchUserEvents = async () => {
+      try {
+        const response = await fetch('/api/user/events');
+        if (response.ok) {
+          const data = await response.json();
+          setUpcomingEvents(data.upcoming);
+          setSavedEvents(data.saved);
+        }
+      } catch (error) {
+        console.error('Error fetching user events:', error);
+      }
+    };
+
+    fetchUserEvents();
+  }, []);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -197,7 +214,7 @@ const ProfileContent = ({ user }: ProfileContentProps) => {
           <TabsContent value="saved" className="space-y-6">
             {savedEvents.length > 0 ? (
               savedEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
+                <EventCard key={event.id} event={event} saved={true} />
               ))
             ) : (
               <div className="text-center py-12 bg-white rounded-2xl">

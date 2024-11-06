@@ -133,29 +133,33 @@ const ProfileContent = ({ user }: ProfileContentProps) => {
 
         {/* Tabs Section */}
         <Tabs defaultValue="upcoming" className="space-y-8">
-          <TabsList className="bg-white rounded-xl p-2 shadow-sm">
-            <TabsTrigger
-              value="upcoming"
-              className="flex items-center gap-2 px-4 py-2"
-            >
-              <CalendarIcon className="w-5 h-5" />
-              Upcoming Events
-            </TabsTrigger>
-            <TabsTrigger
-              value="past"
-              className="flex items-center gap-2 px-4 py-2"
-            >
-              <TicketIcon className="w-5 h-5" />
-              Past Events
-            </TabsTrigger>
-            <TabsTrigger
-              value="saved"
-              className="flex items-center gap-2 px-4 py-2"
-            >
-              <UserIcon className="w-5 h-5" />
-              Saved Events
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex flex-col md:relative">
+            <TabsList className="bg-white rounded-xl p-2 shadow-sm">
+              <div className="flex overflow-x-auto scrollbar-hide">
+                <TabsTrigger
+                  value="upcoming"
+                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2"
+                >
+                  <CalendarIcon className="w-5 h-5" />
+                  Upcoming Events
+                </TabsTrigger>
+                <TabsTrigger
+                  value="past"
+                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2"
+                >
+                  <TicketIcon className="w-5 h-5" />
+                  Past Events
+                </TabsTrigger>
+                <TabsTrigger
+                  value="saved"
+                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2"
+                >
+                  <UserIcon className="w-5 h-5" />
+                  Saved Events
+                </TabsTrigger>
+              </div>
+            </TabsList>
+          </div>
 
           <TabsContent value="upcoming" className="space-y-6">
             {upcomingEvents.length > 0 ? (

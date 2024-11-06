@@ -24,9 +24,9 @@ export default function Component() {
     setIsLoading(true);
     setError(null);
     try {
-      await signIn("google", { 
+      await signIn("google", {
         callbackUrl: "/profile",
-        redirect: true 
+        redirect: true,
       });
     } catch (error) {
       setError("Failed to login with Google");
@@ -96,15 +96,13 @@ export default function Component() {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center bg-cover bg-center"
-      style={{ backgroundImage: "url(/video-fallback.jpg)" }}
-    >
+    <div className="min-h-screen flex items-center justify-center bg-cover bg-center">
       <video
         autoPlay
         loop
         muted
         className="absolute w-full h-full object-cover"
+        poster="/rave-bg.jpg"
       >
         <source src="/rave-video.mp4" type="video/mp4" />
         Your browser does not support the video tag.
@@ -145,7 +143,9 @@ export default function Component() {
                 <div className="w-full border-t border-gray-300"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                <span className="px-2 bg-white text-gray-500">
+                  Or continue with
+                </span>
               </div>
             </div>
 

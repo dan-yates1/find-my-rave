@@ -1,8 +1,8 @@
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/auth";
-import ProfileContent from "@/components/profile/ProfileContent";
 import { PrismaClient } from "@prisma/client";
+import ProfileContent from "./ProfileContent";
 
 const prisma = new PrismaClient();
 

@@ -5,14 +5,14 @@ export default function Home() {
   return (
     <div className="relative min-h-screen text-white">
       {/* Background Video with Overlay */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70 z-10" />
+      <div className="absolute inset-0">
         <video
           autoPlay
           loop
           muted
           playsInline
           className="w-full h-full object-cover"
+          poster="/rave-bg.jpg"
         >
           <source src="/rave-video.mp4" type="video/mp4" />
         </video>
@@ -25,9 +25,10 @@ export default function Home() {
             Discover Your Next Rave
           </h1>
           <p className="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto">
-            Find the best raves and music events near you. Let the beat guide you.
+            Find the best raves and music events near you. Let the beat guide
+            you.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
             <Link href="/find-events">
               <button className="w-full sm:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium hover-effect">

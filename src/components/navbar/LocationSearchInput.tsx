@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { MapPinIcon } from "@heroicons/react/24/outline";
+import { MapPinIcon, MapIcon } from "@heroicons/react/24/outline";
 
 interface LocationSearchInputProps {
   location: string;
-  onLocationChange: (location: string) => void;
+  onLocationChange: (location: string, shouldSearch?: boolean) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
@@ -25,6 +25,7 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
 }) => {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,7 +41,7 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
 
   const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    onLocationChange(value);
+    onLocationChange(value, true);
 
     if (value.length > 1) {
       try {
@@ -68,7 +69,6 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
   };
 
   const handleSuggestionClick = (suggestion: Suggestion) => {
-    // Extract just the main place name without the country
     const mainPlace = suggestion.text || suggestion.place_name.split(',')[0];
     onLocationChange(mainPlace);
     setSuggestions([]);
@@ -85,6 +85,32 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
     };
   };
 
+  const handleCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const response = await fetch(
+              `https://api.mapbox.com/geocoding/v5/mapbox.places/${position.coords.longitude},${position.coords.latitude}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_API_KEY}&types=place&limit=1`
+            );
+            const data = await response.json();
+            if (data.features?.[0]) {
+              const mainPlace = data.features[0].text || data.features[0].place_name.split(',')[0];
+              onLocationChange(mainPlace);
+              setSuggestions([]);
+              setShowSuggestions(false);
+            }
+          } catch (error) {
+            console.error("Error fetching location name:", error);
+          }
+        },
+        (error) => {
+          console.error("Error getting current location:", error);
+        }
+      );
+    }
+  };
+
   return (
     <div ref={wrapperRef} className="relative flex-1 min-w-0">
       <div className="flex items-center">
@@ -94,13 +120,28 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
           value={location}
           onChange={handleInputChange}
           onKeyDown={onKeyDown}
-          placeholder="London, United Kingdom"
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+          placeholder="Choose a location"
           className="flex-1 bg-transparent border-none outline-none px-3 text-gray-600 placeholder-gray-500 text-sm min-w-0"
         />
       </div>
       
-      {showSuggestions && suggestions.length > 0 && (
+      {((showSuggestions && suggestions.length > 0) || (isFocused && !location)) && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+          {!location && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                handleCurrentLocation();
+              }}
+              className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+            >
+              <MapIcon className="h-4 w-4 text-blue-600" />
+              <div className="text-sm p-1 text-gray-900">Use my current location</div>
+            </button>
+          )}
           {suggestions.map((suggestion) => {
             const { mainPlace, subtext } = formatSuggestion(suggestion);
             return (

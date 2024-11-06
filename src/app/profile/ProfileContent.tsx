@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Image from "next/image";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -8,20 +8,56 @@ import {
   TicketIcon,
   UserIcon,
   CogIcon,
+  CameraIcon,
 } from "@heroicons/react/24/outline";
 import EventCard from "@/components/EventCard";
+import { useSession } from "next-auth/react";
 
 interface ProfileContentProps {
-  user: any; // You can type this properly based on your User type
+  user: any;
 }
 
 const ProfileContent = ({ user }: ProfileContentProps) => {
+  const { update: updateSession } = useSession();
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState("upcoming");
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [pastEvents, setPastEvents] = useState<any[]>([]);
+  const [savedEvents, setSavedEvents] = useState<any[]>([]);
 
-  // Temporary data - replace with real data from your API
-  const upcomingEvents: any[] = [];
-  const pastEvents: any[] = [];
-  const savedEvents: any[] = [];
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await fetch("/api/user/update-profile-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to upload image");
+      }
+
+      const { imageUrl } = await response.json();
+      
+      // Update the session to reflect the new image
+      await updateSession({
+        ...user,
+        image: imageUrl,
+      });
+
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 py-12">
@@ -29,20 +65,50 @@ const ProfileContent = ({ user }: ProfileContentProps) => {
         {/* Profile Header */}
         <div className="bg-white rounded-2xl shadow-sm p-8 mb-8">
           <div className="flex flex-col md:flex-row items-center gap-8">
-            <div className="relative w-32 h-32">
-              {user.image ? (
-                <Image
-                  src={user.image}
-                  alt="Profile"
-                  fill
-                  className="rounded full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full rounded-full bg-blue-600 flex items-center justify-center text-white text-6xl font-semibold">
-                  {user.name?.[0]?.toUpperCase() || "?"}
+            {/* Profile Image Section */}
+            <div 
+              className="relative w-32 h-32 group cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <div className="w-full h-full rounded-full overflow-hidden">
+                {user.image ? (
+                  <Image
+                    src={user.image}
+                    alt="Profile"
+                    fill
+                    className="rounded-full object-cover"
+                    sizes="128px"
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-full bg-blue-600 flex items-center justify-center text-white text-6xl font-semibold">
+                    {user.name?.[0]?.toUpperCase() || "?"}
+                  </div>
+                )}
+              </div>
+              
+              {/* Hover Overlay */}
+              <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                <CameraIcon className="w-8 h-8 text-white" />
+              </div>
+              
+              {/* File Input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+                disabled={uploading}
+              />
+              
+              {/* Loading Overlay */}
+              {uploading && (
+                <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                 </div>
               )}
             </div>
+
             <div className="flex-1 text-center md:text-left">
               <h1 className="text-2xl font-bold">{user.name}</h1>
               <p className="text-gray-600">{user.email}</p>

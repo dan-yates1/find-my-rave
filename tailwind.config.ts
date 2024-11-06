@@ -7,7 +7,6 @@ const config = {
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
   ],
-  darkMode: false,
   theme: {
     container: {
       center: true,

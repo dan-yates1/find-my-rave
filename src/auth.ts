@@ -69,8 +69,8 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user, account, profile }) {
-      if (account?.provider === "google") {
-        try {
+      try {
+        if (account?.provider === "google") {
           const existingUser = await prisma.user.findUnique({
             where: { email: user.email! },
           });
@@ -79,14 +79,65 @@ export const authOptions: NextAuthOptions = {
             await prisma.user.update({
               where: { id: existingUser.id },
               data: {
+                name: user.name,
                 image: user.image,
-                name: existingUser.name || user.name,
               },
             });
+          }
+        }
+        return true;
+      } catch (error) {
+        console.error("Error in signIn callback:", error);
+        return false;
+      }
+    },
+    async jwt({ token, user, account, trigger, session }) {
+      if (trigger === "update" && session?.user) {
+        token.picture = session.user.image;
+        await prisma.user.update({
+          where: { email: token.email! },
+          data: { image: session.user.image },
+        });
+      }
 
+      if (account && user) {
+        return {
+          ...token,
+          id: user.id,
+          role: user.role || "user",
+          picture: user.image,
+        };
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id?.toString() || '';
+        session.user.role = (token.role as string) || 'user';
+        session.user.image = token.picture as string || session.user.image;
+      }
+      return session;
+    },
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: "jwt",
+  },
+  events: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider === "google") {
+        try {
+          const existingAccount = await prisma.account.findFirst({
+            where: {
+              provider: "google",
+              providerAccountId: account.providerAccountId,
+            },
+          });
+
+          if (!existingAccount) {
             await prisma.account.create({
               data: {
-                userId: existingUser.id,
+                userId: user.id,
                 type: account.type,
                 provider: account.provider,
                 providerAccountId: account.providerAccountId,
@@ -98,32 +149,9 @@ export const authOptions: NextAuthOptions = {
             });
           }
         } catch (error) {
-          console.error("Error in signIn callback:", error);
-          return false;
+          console.error("Error in signIn event:", error);
         }
       }
-      return true;
     },
-    async jwt({ token, user, account }) {
-      if (account && user) {
-        return {
-          ...token,
-          id: user.id,
-          role: user.role || "user",
-        };
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id?.toString() || '';
-        session.user.role = (token.role as string) || 'user';
-      }
-      return session;
-    },
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-  session: {
-    strategy: "jwt",
   },
 };

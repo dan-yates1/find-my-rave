@@ -81,12 +81,12 @@ export default function Navbar() {
                       <Image
                         src={session.user.image}
                         alt="Profile"
-                        width={50}
-                        height={50}
+                        width={40}
+                        height={40}
                         className="rounded-full"
                       />
                     ) : (
-                      <div className="w-[50px] h-[50px] rounded-full bg-blue-600 flex items-center justify-center text-white text-xl font-semibold">
+                      <div className="w-[40px] h-[40px] rounded-full bg-blue-600 flex items-center justify-center text-white text-xl font-semibold">
                         {session.user.name?.[0]?.toUpperCase() || '?'}
                       </div>
                     )}

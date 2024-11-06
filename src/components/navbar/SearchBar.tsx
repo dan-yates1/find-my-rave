@@ -28,7 +28,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
               placeholder="drum and bass raves"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="flex-1 bg-transparent border-none outline-none px-3 text-gray-900 text-sm min-w-0"
+              className="flex-1 bg-transparent border-none outline-none px-3 text-gray-600 placeholder-gray-500 text-sm min-w-0"
             />
           </div>
           <div className="h-5 w-px bg-gray-300 mx-2 flex-shrink-0"></div>

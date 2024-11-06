@@ -95,7 +95,7 @@ const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
           onChange={handleInputChange}
           onKeyDown={onKeyDown}
           placeholder="London, United Kingdom"
-          className="flex-1 bg-transparent border-none outline-none px-3 text-gray-900 placeholder-gray-500 text-sm min-w-0"
+          className="flex-1 bg-transparent border-none outline-none px-3 text-gray-600 placeholder-gray-500 text-sm min-w-0"
         />
       </div>
       

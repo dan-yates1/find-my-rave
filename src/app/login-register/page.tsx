@@ -110,7 +110,7 @@ export default function Component() {
         Your browser does not support the video tag.
       </video>
       <div className="relative z-10 w-full max-w-md">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md bg-white">
           <CardContent className="p-6">
             <h1 className="text-2xl font-black text-center text-blue-600 mb-6">
               FINDMYRAVE

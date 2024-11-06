@@ -42,11 +42,11 @@ export default function Navbar() {
 
   return (
     <nav className="bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto py-1 px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo and brand */}
           <div className="flex items-center">
-            <Link href="/" className="text-blue-600 font-bold text-xl">
+            <Link href="/" className="text-blue-600 font-black text-xl">
               FINDMYRAVE
             </Link>
           </div>
@@ -61,15 +61,15 @@ export default function Navbar() {
             <div className="flex items-center space-x-8">
               <Link
                 href="/find-events"
-                className="text-blue-600 hover:text-blue-700"
+                className="text-[#39364F] font-medium hover:text-[#1a1f2e] transition-colors"
               >
                 Find Events
               </Link>
               <Link
                 href="/create-event"
-                className="text-blue-600 hover:text-blue-700"
+                className="text-[#39364F] font-medium hover:text-[#1a1f2e] transition-colors"
               >
-                Create Event
+                Create Events
               </Link>
               {session?.user ? (
                 <div className="relative" ref={dropdownRef}>
@@ -81,8 +81,8 @@ export default function Navbar() {
                       <Image
                         src={session.user.image}
                         alt="Profile"
-                        width={32}
-                        height={32}
+                        width={50}
+                        height={50}
                         className="rounded-full"
                       />
                     ) : (
@@ -121,9 +121,9 @@ export default function Navbar() {
               ) : (
                 <Link
                   href="/login-register"
-                  className="text-blue-600 hover:text-blue-700"
+                  className="text-[#39364F] font-medium hover:text-[#1a1f2e]"
                 >
-                  Sign In
+                  Sign In/Register
                 </Link>
               )}
             </div>

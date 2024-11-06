@@ -90,11 +90,11 @@ const EventCard = ({ event }: EventCardProps) => {
               <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
                 From {priceRange}
               </span>
-              {ticketsLeft < 20 && (
+              {/* {ticketsLeft < 20 && (
                 <span className="text-xs text-red-500 dark:text-red-400 font-medium px-2 py-1 bg-red-100 dark:bg-red-900/30 rounded-full">
                   Selling fast
                 </span>
-              )}
+              )} */}
             </div>
             <span className="flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400">
               <TicketIcon className="w-4 h-4" />

@@ -6,10 +6,10 @@ import AdminDashboard from "./AdminDashboard";
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
 
-  // if (!session || !session.user || !("role" in session.user) || session.user.role !== "admin") {
-  //   console.log("Redirecting to home page due to insufficient permissions or missing session.");
-  //   redirect("/");
-  // }
+  if (!session || !session.user || !("role" in session.user) || session.user.role !== "admin") {
+    console.log("Redirecting to home page due to insufficient permissions or missing session.");
+    redirect("/");
+  }
 
   return <AdminDashboard />;
 }

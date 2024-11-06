@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -25,6 +25,34 @@ const ProfileContent = ({ user }: ProfileContentProps) => {
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [pastEvents, setPastEvents] = useState<any[]>([]);
   const [savedEvents, setSavedEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchSavedEvents = async () => {
+      try {
+        const savedIdsResponse = await fetch('/api/user/check-saved-events');
+        const { savedEventIds } = await savedIdsResponse.json();
+        
+        if (savedEventIds?.length > 0) {
+          const eventsResponse = await fetch('/api/events/by-ids', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ eventIds: savedEventIds }),
+          });
+          
+          if (eventsResponse.ok) {
+            const { events } = await eventsResponse.json();
+            setSavedEvents(events);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching saved events:', error);
+      }
+    };
+
+    fetchSavedEvents();
+  }, []);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

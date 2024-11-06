@@ -12,7 +12,9 @@ export default function Home() {
           muted
           playsInline
           className="w-full h-full object-cover"
-          poster="/rave-bg.jpg"
+          poster="/video-fallback.jpg"
+          disablePictureInPicture
+          disableRemotePlayback
         >
           <source src="/rave-video.mp4" type="video/mp4" />
         </video>

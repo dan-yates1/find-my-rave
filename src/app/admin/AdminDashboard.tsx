@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Event } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -10,6 +10,10 @@ export default function AdminDashboard() {
   const [pendingEvents, setPendingEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    fetchPendingEvents();
+  }, []);
 
   const fetchPendingEvents = async () => {
     const response = await fetch("/api/admin/events");

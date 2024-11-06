@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Event } from "@prisma/client";
@@ -15,6 +15,7 @@ interface MapProps {
 const Map: React.FC<MapProps> = ({ events, centreLatLon, className = "", hoveredEventId }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -28,85 +29,100 @@ const Map: React.FC<MapProps> = ({ events, centreLatLon, className = "", hovered
         zoom: 11,
       });
 
-      // Add custom styles when map loads
+      // Wait for map to load before adding layers
       map.current.on("load", () => {
-        if (!map.current) return;
+        setMapLoaded(true);
+      });
+    }
 
-        // Add custom layer for event clusters
-        map.current.addSource("events", {
-          type: "geojson",
-          data: {
-            type: "FeatureCollection",
-            features: [],
-          },
-          cluster: true,
-          clusterMaxZoom: 14,
-          clusterRadius: 50,
-        });
+    return () => {
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
+    };
+  }, []);
 
-        // Add cluster layer
-        map.current.addLayer({
-          id: "clusters",
-          type: "circle",
-          source: "events",
-          filter: ["has", "point_count"],
-          paint: {
-            "circle-color": [
-              "step",
-              ["get", "point_count"],
-              "#4F46E5",
-              10,
-              "#3730A3",
-              30,
-              "#312E81",
-            ],
-            "circle-radius": [
-              "step",
-              ["get", "point_count"],
-              20,
-              10,
-              30,
-              30,
-              40,
-            ],
-            "circle-opacity": 0.9,
-            "circle-stroke-width": 2,
-            "circle-stroke-color": "#fff",
-            "circle-stroke-opacity": 0.5,
-          },
-        });
+  // Add layers after map is loaded
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
 
-        // Add cluster count
-        map.current.addLayer({
-          id: "cluster-count",
-          type: "symbol",
-          source: "events",
-          filter: ["has", "point_count"],
-          layout: {
-            "text-field": "{point_count_abbreviated}",
-            "text-size": 14,
-            "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
-          },
-          paint: {
-            "text-color": "#ffffff",
-          },
-        });
+    // Check if source already exists
+    if (!map.current.getSource("events")) {
+      // Add custom layer for event clusters
+      map.current.addSource("events", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [],
+        },
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 50,
+      });
 
-        // Add individual event points
-        map.current.addLayer({
-          id: "unclustered-point",
-          type: "circle",
-          source: "events",
-          filter: ["!", ["has", "point_count"]],
-          paint: {
-            "circle-color": "#4F46E5",
-            "circle-radius": 12,
-            "circle-opacity": 0.9,
-            "circle-stroke-width": 2,
-            "circle-stroke-color": "#fff",
-            "circle-stroke-opacity": 0.5,
-          },
-        });
+      // Add cluster layer
+      map.current.addLayer({
+        id: "clusters",
+        type: "circle",
+        source: "events",
+        filter: ["has", "point_count"],
+        paint: {
+          "circle-color": [
+            "step",
+            ["get", "point_count"],
+            "#4F46E5",
+            10,
+            "#3730A3",
+            30,
+            "#312E81",
+          ],
+          "circle-radius": [
+            "step",
+            ["get", "point_count"],
+            20,
+            10,
+            30,
+            30,
+            40,
+          ],
+          "circle-opacity": 0.9,
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#fff",
+          "circle-stroke-opacity": 0.5,
+        },
+      });
+
+      // Add cluster count
+      map.current.addLayer({
+        id: "cluster-count",
+        type: "symbol",
+        source: "events",
+        filter: ["has", "point_count"],
+        layout: {
+          "text-field": "{point_count_abbreviated}",
+          "text-size": 14,
+          "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
+        },
+        paint: {
+          "text-color": "#ffffff",
+        },
+      });
+
+      // Add individual event points
+      map.current.addLayer({
+        id: "unclustered-point",
+        type: "circle",
+        source: "events",
+        filter: ["!", ["has", "point_count"]],
+        paint: {
+          "circle-color": "#4F46E5",
+          "circle-radius": 12,
+          "circle-opacity": 0.9,
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#fff",
+          "circle-stroke-opacity": 0.5,
+        },
       });
 
       // Add popup on hover
@@ -140,57 +156,61 @@ const Map: React.FC<MapProps> = ({ events, centreLatLon, className = "", hovered
         popup.remove();
       });
     }
+  }, [mapLoaded]);
 
-    // Update map data when events change
-    if (map.current && events.length > 0) {
-      const source = map.current.getSource("events") as mapboxgl.GeoJSONSource;
-      if (source) {
-        source.setData({
-          type: "FeatureCollection",
-          features: events
-            .filter((event) => event.latitude && event.longitude)
-            .map((event) => ({
-              type: "Feature",
-              geometry: {
-                type: "Point",
-                coordinates: [event.longitude!, event.latitude!],
-              },
-              properties: {
-                id: event.id,
-                title: event.title,
-                location: event.location,
-              },
-            })),
-        });
-      }
+  // Update map data when events change
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !events.length) return;
+
+    const source = map.current.getSource("events") as mapboxgl.GeoJSONSource;
+    if (source) {
+      source.setData({
+        type: "FeatureCollection",
+        features: events
+          .filter((event) => event.latitude && event.longitude)
+          .map((event) => ({
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [event.longitude!, event.latitude!],
+            },
+            properties: {
+              id: event.id,
+              title: event.title,
+              location: event.location,
+            },
+          })),
+      });
     }
+  }, [events, mapLoaded]);
 
-    // Update map center when centreLatLon changes
-    if (map.current && centreLatLon) {
+  // Update map center when centreLatLon changes
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !centreLatLon) return;
+
+    map.current.flyTo({
+      center: [centreLatLon[1], centreLatLon[0]],
+      zoom: 11,
+      duration: 1500,
+      essential: true
+    });
+  }, [centreLatLon, mapLoaded]);
+
+  // Handle hover state
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !hoveredEventId || !events.length) return;
+
+    const hoveredEvent = events.find(event => event.id === hoveredEventId);
+    if (hoveredEvent?.latitude && hoveredEvent?.longitude) {
       map.current.flyTo({
-        center: [centreLatLon[1], centreLatLon[0]],
-        zoom: 11,
+        center: [hoveredEvent.longitude, hoveredEvent.latitude],
+        zoom: 12,
         duration: 1500,
+        padding: { top: 50, bottom: 50, left: 50, right: 50 },
         essential: true
       });
     }
-  }, [events, centreLatLon]);
-
-  // Add effect to handle hover state with adjusted zoom and animation
-  useEffect(() => {
-    if (map.current && hoveredEventId && events.length > 0) {
-      const hoveredEvent = events.find(event => event.id === hoveredEventId);
-      if (hoveredEvent?.latitude && hoveredEvent?.longitude) {
-        map.current.flyTo({
-          center: [hoveredEvent.longitude, hoveredEvent.latitude],
-          zoom: 12,
-          duration: 1500,
-          padding: { top: 50, bottom: 50, left: 50, right: 50 },
-          essential: true
-        });
-      }
-    }
-  }, [hoveredEventId, events]);
+  }, [hoveredEventId, events, mapLoaded]);
 
   return <div ref={mapContainer} className={`w-full h-full ${className}`} />;
 };

@@ -6,7 +6,7 @@ import EventCard from "@/components/EventCard";
 import SkeletonEventCard from "@/components/SkeletonEventCard";
 import Map from "@/components/Map";
 import { capitalizeFirstLetter, getLatLon } from "@/lib/utils";
-import { CalendarIcon, FunnelIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { CalendarIcon, FunnelIcon, XMarkIcon, MapIcon } from "@heroicons/react/24/outline";
 import debounce from "lodash/debounce";
 
 const FindEventsPageContent = () => {
@@ -22,6 +22,7 @@ const FindEventsPageContent = () => {
   });
   const [centreLatLon, setCentreLatLon] = useState<[number, number]>();
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
+  const [showMap, setShowMap] = useState(false);
 
   const searchParams = useSearchParams();
   const eventQuery = searchParams.get("event") || "";
@@ -353,20 +354,36 @@ const FindEventsPageContent = () => {
           </div>
         </div>
 
-        {/* Map Container - Updated with padding */}
+        {/* Map Container */}
         <div className="hidden xl:block w-[40%] max-w-[600px] h-[calc(100vh-5rem)] sticky top-16 right-0 p-4">
           <div className="relative h-full rounded-xl overflow-hidden shadow-xl border border-gray-200/20">
-            <div className="absolute inset-0 rounded-xl overflow-hidden">
-              <Map 
-                events={events} 
-                centreLatLon={centreLatLon}
-                hoveredEventId={hoveredEventId}
-                className="w-full h-full"
-              />
-            </div>
+            {!showMap ? (
+              <div className="absolute inset-0 bg-gray-900/90 backdrop-blur-sm flex flex-col items-center justify-center gap-4 text-white">
+                <h3 className="text-xl font-semibold">Interactive Map</h3>
+                <p className="text-sm text-gray-300 text-center max-w-sm">
+                  View all events on an interactive map. This may use additional data.
+                </p>
+                <button
+                  onClick={() => setShowMap(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <MapIcon className="w-5 h-5" />
+                  Load Map
+                </button>
+              </div>
+            ) : (
+              <div className="absolute inset-0 rounded-xl overflow-hidden">
+                <Map 
+                  events={events} 
+                  centreLatLon={centreLatLon}
+                  hoveredEventId={hoveredEventId}
+                  className="w-full h-full"
+                />
+              </div>
+            )}
             
             {/* Loading Overlay */}
-            {loading && (
+            {loading && showMap && (
               <div className="absolute inset-0 bg-black/20 flex items-center justify-center backdrop-blur-sm rounded-xl">
                 <div className="bg-white/90 dark:bg-gray-800/90 p-4 rounded-lg shadow-lg">
                   <div className="text-sm font-medium">Loading events...</div>

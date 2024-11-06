@@ -94,7 +94,7 @@ const EventCard = ({ event, saved = false, onHover }: EventCardProps) => {
               </div>
               <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
                 <UsersIcon className="w-4 h-4" />
-                {Math.floor(Math.random() * 500)} attending
+                100 attending
               </div>
             </div>
           </div>

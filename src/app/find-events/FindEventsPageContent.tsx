@@ -11,6 +11,8 @@ import { CalendarIcon, FunnelIcon } from "@heroicons/react/24/outline";
 const FindEventsPageContent = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     dateRange: 'all',
@@ -28,16 +30,17 @@ const FindEventsPageContent = () => {
       setLoading(true);
       try {
         const response = await fetch(
-          `/api/events/search?event=${eventQuery}&location=${locationQuery}`
+          `/api/events/search?event=${eventQuery}&location=${locationQuery}&page=${page}&limit=10`
         );
         if (response.ok) {
           const data = await response.json();
-          setEvents(data.events);
-          const location = await getLatLon(locationQuery);
-          if (location) {
-            setCentreLatLon([location.lat, location.lon]);
-          } else {
-            console.error("Failed to fetch location");
+          setEvents(page === 0 ? data.events : [...events, ...data.events]);
+          setHasMore(data.hasMore);
+          if (page === 0) {
+            const location = await getLatLon(locationQuery);
+            if (location) {
+              setCentreLatLon([location.lat, location.lon]);
+            }
           }
         } else {
           console.error("Failed to fetch events");
@@ -50,6 +53,14 @@ const FindEventsPageContent = () => {
     };
 
     fetchEvents();
+  }, [eventQuery, locationQuery, page]);
+
+  const loadMore = () => {
+    setPage(prev => prev + 1);
+  };
+
+  useEffect(() => {
+    setPage(0);
   }, [eventQuery, locationQuery]);
 
   const titleText =
@@ -164,14 +175,27 @@ const FindEventsPageContent = () => {
             </h2>
             
             <div className="grid gap-6">
-              {loading ? (
-                Array(6).fill(0).map((_, index) => (
+              {loading && page === 0 ? (
+                Array(3).fill(0).map((_, index) => (
                   <SkeletonEventCard key={index} />
                 ))
               ) : events.length > 0 ? (
-                events.map((event) => (
-                  <EventCard key={event.id} event={event} />
-                ))
+                <>
+                  {events.map((event) => (
+                    <EventCard key={event.id} event={event} />
+                  ))}
+                  {hasMore && (
+                    <div className="flex justify-center py-6">
+                      <button
+                        onClick={loadMore}
+                        disabled={loading}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                      >
+                        {loading ? 'Loading...' : 'Show More Events'}
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-12">
                   <p className="text-xl text-gray-500">No events found</p>

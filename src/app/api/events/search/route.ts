@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   const eventQuery = searchParams.get("event") || "";
   const locationQuery = searchParams.get("location") || "";
   const page = parseInt(searchParams.get("page") || "0", 10);
-  const limit = parseInt(searchParams.get("limit") || "5", 10);
+  const limit = parseInt(searchParams.get("limit") || "10", 10);
   const skip = page * limit;
 
   try {

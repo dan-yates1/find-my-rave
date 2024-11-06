@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import EventCard from "@/components/EventCard";
 import SkeletonEventCard from "@/components/SkeletonEventCard";
@@ -8,6 +8,7 @@ import Map from "@/components/Map";
 import { capitalizeFirstLetter, getLatLon } from "@/lib/utils";
 import { CalendarIcon, FunnelIcon, XMarkIcon, MapIcon } from "@heroicons/react/24/outline";
 import debounce from "lodash/debounce";
+import Image from "next/image";
 
 const FindEventsPageContent = () => {
   const [events, setEvents] = useState<any[]>([]);
@@ -23,6 +24,8 @@ const FindEventsPageContent = () => {
   const [centreLatLon, setCentreLatLon] = useState<[number, number]>();
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
   const [showMap, setShowMap] = useState(false);
+  const [mapInitialized, setMapInitialized] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
 
   const searchParams = useSearchParams();
   const eventQuery = searchParams.get("event") || "";
@@ -112,6 +115,14 @@ const FindEventsPageContent = () => {
       eventType: 'all',
     });
   };
+
+  // Reset map when unmounting
+  useEffect(() => {
+    return () => {
+      setShowMap(false);
+      setMapInitialized(false);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
@@ -358,27 +369,49 @@ const FindEventsPageContent = () => {
         <div className="hidden xl:block w-[40%] max-w-[600px] h-[calc(100vh-5rem)] sticky top-16 right-0 p-4">
           <div className="relative h-full rounded-xl overflow-hidden shadow-xl border border-gray-200/20">
             {!showMap ? (
-              <div className="absolute inset-0 bg-gray-900/90 backdrop-blur-sm flex flex-col items-center justify-center gap-4 text-white">
-                <h3 className="text-xl font-semibold">Interactive Map</h3>
-                <p className="text-sm text-gray-300 text-center max-w-sm">
-                  View all events on an interactive map. This may use additional data.
-                </p>
-                <button
-                  onClick={() => setShowMap(true)}
-                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <MapIcon className="w-5 h-5" />
-                  Load Map
-                </button>
+              <div className="absolute inset-0">
+                {/* Static map background with overlay */}
+                <div className="absolute inset-0">
+                  <Image
+                    src="/map-static.jpg"
+                    alt="Map preview"
+                    fill
+                    className="object-cover blur-[2px]"
+                    priority
+                  />
+                  <div className="absolute inset-0" />
+                </div>
+                
+                {/* Content */}
+                <div className="relative z-10 h-full flex flex-col items-center justify-center gap-4 text-white">
+                  <h3 className="text-xl font-semibold">Interactive Map</h3>
+                  <p className="text-sm text-white text-center max-w-sm">
+                    View all events on an interactive map. This may use additional data.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowMap(true);
+                      setTimeout(() => {
+                        setMapInitialized(true);
+                      }, 100);
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                  >
+                    <MapIcon className="w-5 h-5" />
+                    Load Map
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="absolute inset-0 rounded-xl overflow-hidden">
-                <Map 
-                  events={events} 
-                  centreLatLon={centreLatLon}
-                  hoveredEventId={hoveredEventId}
-                  className="w-full h-full"
-                />
+              <div ref={mapRef} className="absolute inset-0 rounded-xl overflow-hidden">
+                {mapInitialized && (
+                  <Map 
+                    events={events} 
+                    centreLatLon={centreLatLon}
+                    hoveredEventId={hoveredEventId}
+                    className="w-full h-full"
+                  />
+                )}
               </div>
             )}
             

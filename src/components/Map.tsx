@@ -17,23 +17,37 @@ const Map: React.FC<MapProps> = ({ events, centreLatLon, className = "", hovered
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
+  // Initialize map
   useEffect(() => {
     if (!mapContainer.current) return;
 
-    if (!map.current) {
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        accessToken: process.env.NEXT_PUBLIC_MAPBOX_API_KEY,
-        style: "mapbox://styles/mapbox/dark-v11",
-        center: [-0.118092, 51.509865],
-        zoom: 11,
-      });
-
-      // Wait for map to load before adding layers
-      map.current.on("load", () => {
-        setMapLoaded(true);
-      });
+    // Always create a new map instance
+    if (map.current) {
+      map.current.remove();
     }
+
+    const newMap = new mapboxgl.Map({
+      container: mapContainer.current,
+      accessToken: process.env.NEXT_PUBLIC_MAPBOX_API_KEY,
+      style: "mapbox://styles/mapbox/dark-v11",
+      center: centreLatLon ? [centreLatLon[1], centreLatLon[0]] : [-0.118092, 51.509865],
+      zoom: 11,
+    });
+
+    // Wait for both style and map to be loaded
+    newMap.on('style.load', () => {
+      if (newMap.loaded()) {
+        setMapLoaded(true);
+      }
+    });
+
+    newMap.on('load', () => {
+      if (newMap.isStyleLoaded()) {
+        setMapLoaded(true);
+      }
+    });
+
+    map.current = newMap;
 
     return () => {
       if (map.current) {
@@ -45,16 +59,36 @@ const Map: React.FC<MapProps> = ({ events, centreLatLon, className = "", hovered
 
   // Add layers after map is loaded
   useEffect(() => {
-    if (!map.current || !mapLoaded) return;
+    if (!map.current || !mapLoaded || !events.length) return;
 
-    // Check if source already exists
-    if (!map.current.getSource("events")) {
+    try {
+      // Check if source already exists and remove it if it does
+      if (map.current.getSource("events")) {
+        map.current.removeLayer("clusters");
+        map.current.removeLayer("cluster-count");
+        map.current.removeLayer("unclustered-point");
+        map.current.removeSource("events");
+      }
+
       // Add custom layer for event clusters
       map.current.addSource("events", {
         type: "geojson",
         data: {
           type: "FeatureCollection",
-          features: [],
+          features: events
+            .filter((event) => event.latitude && event.longitude)
+            .map((event) => ({
+              type: "Feature",
+              geometry: {
+                type: "Point",
+                coordinates: [event.longitude!, event.latitude!],
+              },
+              properties: {
+                id: event.id,
+                title: event.title,
+                location: event.location,
+              },
+            })),
         },
         cluster: true,
         clusterMaxZoom: 14,
@@ -155,8 +189,10 @@ const Map: React.FC<MapProps> = ({ events, centreLatLon, className = "", hovered
         map.current.getCanvas().style.cursor = "";
         popup.remove();
       });
+    } catch (error) {
+      console.error("Error adding map layers:", error);
     }
-  }, [mapLoaded]);
+  }, [events, mapLoaded]);
 
   // Update map data when events change
   useEffect(() => {

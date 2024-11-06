@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
-import { Bars3Icon, XMarkIcon, UserCircleIcon } from "@heroicons/react/24/outline";
+import { Bars3Icon, XMarkIcon, UserCircleIcon, UserIcon } from "@heroicons/react/24/outline";
 import SearchBar from "./SearchBar";
 import { useRouter } from "next/navigation";
 import MobileNav from "./MobileNav";
@@ -90,7 +90,7 @@ export default function Navbar() {
                     />
                   ) : (
                     <div className="w-[40px] h-[40px] rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
-                      <UserCircleIcon className="w-6 h-6" />
+                      <UserIcon className="w-6 h-6" />
                     </div>
                   )}
                 </button>

@@ -1,94 +1,110 @@
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient } = require('@prisma/client');
+
 const prisma = new PrismaClient();
 
 async function main() {
   const events = [
     {
-      slug: "indie-rock-islington",
-      title: "Indie Rock Islington",
-      description: "Catch the best indie rock bands in Islington.",
-      startDate: new Date("2024-12-05T19:30:00Z"),
-      endDate: new Date("2024-12-06T00:30:00Z"),
-      location: "Islington, London, UK",
-      latitude: 51.5343,
-      longitude: -0.1055,
-      link: "http://example.com/indie-rock-islington",
-      imageUrl: "http://example.com/images/indie-rock-islington.jpg",
+      title: "Summer Bass Festival",
+      description: "Experience the biggest bass music festival of the summer featuring top DJs and producers from around the world.",
+      startDate: new Date('2024-07-15T18:00:00'),
+      endDate: new Date('2024-07-16T02:00:00'),
+      location: "London, UK",
+      latitude: 51.5434,
+      longitude: -0.0159,
+      link: "https://example.com/summer-bass-festival",
+      imageUrl: "https://find-my-rave.s3.eu-west-2.amazonaws.com/seed/summer-bass.jpg",
       approved: true,
+      slug: "summer-bass-festival",
     },
     {
-      slug: "electro-dance-shoreditch",
-      title: "Electro Dance Shoreditch",
-      description:
-        "Dance the night away with electrifying beats in Shoreditch.",
-      startDate: new Date("2024-12-31T20:00:00Z"),
-      endDate: new Date("2025-01-01T04:00:00Z"),
-      location: "Shoreditch, London, UK",
-      latitude: 51.5275,
-      longitude: -0.0799,
-      link: "http://example.com/electro-dance-shoreditch",
-      imageUrl: "http://example.com/images/electro-dance-shoreditch.jpg",
+      title: "Underground Techno Night",
+      description: "A night of pure techno in one of London's most iconic underground venues.",
+      startDate: new Date('2024-06-22T23:00:00'),
+      endDate: new Date('2024-06-23T06:00:00'),
+      location: "London, UK",
+      latitude: 51.5201,
+      longitude: -0.1019,
+      link: "https://example.com/underground-techno-night",
+      imageUrl: "https://find-my-rave.s3.eu-west-2.amazonaws.com/seed/techno-night.jpg",
       approved: true,
+      slug: "underground-techno-night",
     },
     {
-      slug: "festival-southbank",
-      title: "Festival on the Southbank",
-      description: "Enjoy live music and arts at the Southbank Centre.",
-      startDate: new Date("2024-08-25T12:00:00Z"),
-      endDate: new Date("2024-08-25T23:00:00Z"),
-      location: "Southbank, London, UK",
-      latitude: 51.5074,
-      longitude: -0.1178,
-      link: "http://example.com/festival-southbank",
-      imageUrl: "http://example.com/images/festival-southbank.jpg",
+      title: "Trance Euphoria",
+      description: "Get lost in the euphoric sounds of trance music with international headliners.",
+      startDate: new Date('2024-08-05T21:00:00'),
+      endDate: new Date('2024-08-06T04:00:00'),
+      location: "Manchester, UK",
+      latitude: 53.4631,
+      longitude: -2.2817,
+      link: "https://example.com/trance-euphoria",
+      imageUrl: "https://find-my-rave.s3.eu-west-2.amazonaws.com/seed/trance.jpg",
       approved: true,
+      slug: "trance-euphoria",
     },
     {
-      slug: "garage-nights-hackney",
-      title: "Garage Nights Hackney",
-      description: "Experience the best of UK garage music in Hackney.",
-      startDate: new Date("2024-09-15T22:00:00Z"),
-      endDate: new Date("2024-09-16T04:00:00Z"),
-      location: "Hackney, London, UK",
-      latitude: 51.545,
-      longitude: -0.0553,
-      link: "http://example.com/garage-nights-hackney",
-      imageUrl: "http://example.com/images/garage-nights-hackney.jpg",
+      title: "Drum & Bass Warehouse Party",
+      description: "Raw, unfiltered drum & bass in a converted warehouse space.",
+      startDate: new Date('2024-09-14T22:00:00'),
+      endDate: new Date('2024-09-15T06:00:00'),
+      location: "Bristol, UK",
+      latitude: 51.4478,
+      longitude: -2.5826,
+      link: "https://example.com/drum-and-bass-warehouse-party",
+      imageUrl: "https://find-my-rave.s3.eu-west-2.amazonaws.com/seed/dnb.jpg",
       approved: true,
+      slug: "drum-and-bass-warehouse-party",
+    },
+    {
+      title: "House Music Garden Party",
+      description: "Open-air house music experience in a beautiful garden setting.",
+      startDate: new Date('2024-07-28T14:00:00'),
+      endDate: new Date('2024-07-28T22:00:00'),
+      location: "Brighton, UK",
+      latitude: 50.8225,
+      longitude: -0.1372,
+      link: "https://example.com/house-music-garden-party",
+      imageUrl: "https://find-my-rave.s3.eu-west-2.amazonaws.com/seed/house-garden.jpg",
+      approved: true,
+      slug: "house-music-garden-party",
+    },
+    {
+      title: "Psytrance Forest Gathering",
+      description: "An immersive psytrance experience in a magical forest setting.",
+      startDate: new Date('2024-08-20T12:00:00'),
+      endDate: new Date('2024-08-21T12:00:00'),
+      location: "Kent, UK",
+      latitude: 51.2796,
+      longitude: 0.5215,
+      link: "https://example.com/psytrance-forest-gathering",
+      imageUrl: "https://find-my-rave.s3.eu-west-2.amazonaws.com/seed/psytrance.jpg",
+      approved: true,
+      slug: "psytrance-forest-gathering",
+    },
+    {
+      title: "Garage & Grime Takeover",
+      description: "The best of UK garage and grime with legendary MCs and DJs.",
+      startDate: new Date('2024-06-29T21:00:00'),
+      endDate: new Date('2024-06-30T04:00:00'),
+      location: "Birmingham, UK",
+      latitude: 52.4751,
+      longitude: -1.8795,
+      link: "https://example.com/garage-and-grime-takeover",
+      imageUrl: "https://find-my-rave.s3.eu-west-2.amazonaws.com/seed/garage.jpg",
+      approved: true,
+      slug: "garage-and-grime-takeover",
     },
   ];
 
-  /* for (const event of events) {
-    await prisma.event.upsert({
-      where: { slug: event.slug },
-      update: {
-        title: event.title,
-        description: event.description,
-        startDate: event.startDate,
-        endDate: event.endDate,
-        location: event.location,
-        latitude: event.latitude,
-        longitude: event.longitude,
-        link: event.link,
-        imageUrl: event.imageUrl,
-        approved: event.approved,
-      },
-      create: event,
-    });
-  }
-
-  console.log("Seeding completed.");
-} */
-
-  // Insert events into the database
   for (const event of events) {
     await prisma.event.create({
       data: event,
     });
   }
-}
 
-console.log("Sample events have been added to the database");
+  console.log('Seed data created successfully!');
+}
 
 main()
   .catch((e) => {
@@ -97,4 +113,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-  });
+  }); 

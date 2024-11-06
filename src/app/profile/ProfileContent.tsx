@@ -30,17 +30,21 @@ const ProfileContent = ({ user }: ProfileContentProps) => {
         <div className="bg-white rounded-2xl shadow-sm p-8 mb-8">
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="relative w-32 h-32">
-              <Image
-                src={user.image || "/default-avatar.png"}
-                alt="Profile"
-                fill
-                className="rounded-full object-cover"
-              />
+              {user.image ? (
+                <Image
+                  src={user.image}
+                  alt="Profile"
+                  fill
+                  className="rounded full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full rounded-full bg-blue-600 flex items-center justify-center text-white text-6xl font-semibold">
+                  {user.name?.[0]?.toUpperCase() || "?"}
+                </div>
+              )}
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h1 className="text-2xl font-bold">
-                {user.name}
-              </h1>
+              <h1 className="text-2xl font-bold">{user.name}</h1>
               <p className="text-gray-600">{user.email}</p>
               <div className="mt-4 flex flex-wrap gap-4 justify-center md:justify-start">
                 <div className="bg-blue-50 px-4 py-2 rounded-full">

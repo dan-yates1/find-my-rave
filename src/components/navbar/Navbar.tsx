@@ -86,7 +86,9 @@ export default function Navbar() {
                         className="rounded-full"
                       />
                     ) : (
-                      <UserCircleIcon className="h-8 w-8" />
+                      <div className="w-[50px] h-[50px] rounded-full bg-blue-600 flex items-center justify-center text-white text-xl font-semibold">
+                        {session.user.name?.[0]?.toUpperCase() || '?'}
+                      </div>
                     )}
                   </button>
                   

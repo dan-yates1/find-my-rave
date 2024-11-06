@@ -19,7 +19,7 @@ export const authOptions: NextAuthOptions = {
           name: profile.name,
           email: profile.email,
           image: profile.picture,
-          role: "user", // Set default role for Google users
+          role: "user",
         };
       },
     }),
@@ -75,13 +75,25 @@ export const authOptions: NextAuthOptions = {
             where: { email: user.email! },
           });
 
-          if (!existingUser) {
-            await prisma.user.create({
+          if (existingUser) {
+            await prisma.user.update({
+              where: { id: existingUser.id },
               data: {
-                email: user.email!,
-                name: user.name!,
                 image: user.image,
-                role: "user",
+                name: existingUser.name || user.name,
+              },
+            });
+
+            await prisma.account.create({
+              data: {
+                userId: existingUser.id,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                access_token: account.access_token,
+                token_type: account.token_type,
+                scope: account.scope,
+                id_token: account.id_token,
               },
             });
           }

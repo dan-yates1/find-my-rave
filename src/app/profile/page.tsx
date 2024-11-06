@@ -7,7 +7,7 @@ export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect("/login");
+    redirect("/login-register");
   }
 
   return <ProfileContent user={session.user} />;

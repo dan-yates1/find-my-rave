@@ -3,7 +3,13 @@
 import React from "react";
 import { Event } from "@prisma/client";
 import Image from "next/image";
-import { MapIcon, TicketIcon, ClockIcon, UsersIcon, CalendarIcon } from "@heroicons/react/24/outline";
+import {
+  MapIcon,
+  TicketIcon,
+  ClockIcon,
+  UsersIcon,
+  CalendarIcon,
+} from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 
 interface EventCardProps {
@@ -37,9 +43,6 @@ const EventCard = ({ event }: EventCardProps) => {
       <div className="flex flex-col md:flex-row gap-6 p-4">
         {/* Image Container */}
         <div className="relative w-full md:w-48 h-48 md:h-32 overflow-hidden rounded-xl">
-          <div className="absolute top-2 left-2 z-10 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-            {priceRange}
-          </div>
           <Image
             src={event.imageUrl || "/rave-bg.jpg"}
             alt={event.title}
@@ -52,7 +55,7 @@ const EventCard = ({ event }: EventCardProps) => {
         <div className="flex-1 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              <h3 className="text-lg font-semibold text-blue-500 group-hover:text-blue-600transition-colors">
                 {event.title}
               </h3>
               <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
@@ -72,7 +75,7 @@ const EventCard = ({ event }: EventCardProps) => {
               </div>
               <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
                 <MapIcon className="w-4 h-4" />
-                {event.location.split(',')[0]}
+                {event.location.split(",")[0]}
               </div>
               <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
                 <UsersIcon className="w-4 h-4" />
@@ -84,7 +87,9 @@ const EventCard = ({ event }: EventCardProps) => {
           {/* Action Bar */}
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200/20 dark:border-gray-700/20">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">From {priceRange}</span>
+              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                From {priceRange}
+              </span>
               {ticketsLeft < 20 && (
                 <span className="text-xs text-red-500 dark:text-red-400 font-medium px-2 py-1 bg-red-100 dark:bg-red-900/30 rounded-full">
                   Selling fast

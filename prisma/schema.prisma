@@ -29,8 +29,10 @@ model Event {
 
 model User {
   id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  email         String    @unique
   name          String?
+  email         String?   @unique
+  password      String?
+  emailVerified DateTime?
   image         String?
   role          String    @default("user")
   accounts      Account[]

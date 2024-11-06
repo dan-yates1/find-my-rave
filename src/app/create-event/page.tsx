@@ -157,7 +157,7 @@ const CreateEventPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 py-12">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4">
         {notification && (
           <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
             <div className={`p-6 rounded-xl shadow-lg ${

@@ -9,56 +9,48 @@ interface SearchBarProps {
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
-  const [input, setInput] = useState<string>("");
-  const [location, setLocation] = useState<string>("");
+  const [input, setInput] = useState("");
+  const [location, setLocation] = useState("");
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
-
-  const handleSearch = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     onSearch({ input, location });
   };
 
   return (
-    <div className="flex items-center w-full max-w-2xl mx-auto py-2">
-      <div className="flex items-center w-full bg-gray-50 dark:bg-gray-800 rounded-full border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
-        {/* Event Search */}
-        <div className="flex items-center flex-1 min-w-0 pl-4">
-          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Search events..."
-            className="w-full bg-transparent border-none outline-none px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+    <form onSubmit={handleSubmit} className="flex-1 flex">
+      <div className="flex-1 flex items-center bg-gray-100 rounded-full h-10">
+        <div className="flex items-center flex-1 px-4">
+          <div className="flex-1 flex items-center min-w-0">
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="drum and bass raves"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="flex-1 bg-transparent border-none outline-none px-3 text-gray-900 text-sm min-w-0"
+            />
+          </div>
+          <div className="h-5 w-px bg-gray-300 mx-2 flex-shrink-0"></div>
+          <LocationSearchInput
+            location={location}
+            onLocationChange={setLocation}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
           />
-        </div>
-
-        {/* Divider */}
-        <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2"></div>
-
-        {/* Location Search */}
-        <div className="flex items-center flex-1 min-w-0">
-          <LocationSearchInput 
-            location={location} 
-            onLocationChange={setLocation} 
-            onKeyDown={handleKeyDown}
-          />
-          
-          {/* Search Button */}
           <button
-            onClick={handleSearch}
-            className="ml-2 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors mr-1"
+            type="submit"
+            className="bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600 flex-shrink-0 ml-2"
           >
-            <MagnifyingGlassIcon className="w-5 h-5" />
+            <MagnifyingGlassIcon className="h-4 w-4" />
           </button>
         </div>
       </div>
-    </div>
+    </form>
   );
 };
 

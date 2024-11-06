@@ -4,7 +4,6 @@ import "./globals.css";
 import Navbar from "@/components/navbar/Navbar";
 import Footer from "@/components/Footer";
 import SessionProviderWrapper from "@/components/SessionProviderWrapper";
-import { ThemeProvider } from "@/components/ThemeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,17 +18,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider>
-          <SessionProviderWrapper>
-            <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 transition-colors">
-              <Navbar />
-              <main className="flex-grow">{children}</main>
-              <Footer />
-            </div>
-          </SessionProviderWrapper>
-        </ThemeProvider>
+    <html lang="en" className="light" suppressHydrationWarning>
+      <head>
+        <script
+          async
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+        />
+      </head>
+      <body className={`${inter.className} bg-white text-black`}>
+        <SessionProviderWrapper>
+          <div className="flex flex-col min-h-screen bg-white">
+            <Navbar />
+            <main className="flex-grow">{children}</main>
+            <Footer />
+          </div>
+        </SessionProviderWrapper>
       </body>
     </html>
   );

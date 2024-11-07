@@ -14,6 +14,24 @@ const nextConfig = {
         port: "",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "d31fr2pwly4c4s.cloudfront.net",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "skiddle.imgix.net",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "skiddleartists.imgix.net",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
 };

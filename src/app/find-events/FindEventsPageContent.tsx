@@ -20,12 +20,14 @@ const FindEventsPageContent = () => {
     dateRange: 'all',
     priceRange: 'all',
     eventType: 'all',
+    radius: '30',
   });
   const [centreLatLon, setCentreLatLon] = useState<[number, number]>();
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [mapInitialized, setMapInitialized] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
+  const [hideMap, setHideMap] = useState(false);
 
   const searchParams = useSearchParams();
   const eventQuery = searchParams.get("event") || "";
@@ -46,6 +48,7 @@ const FindEventsPageContent = () => {
           dateRange: params.filters.dateRange,
           priceRange: params.filters.priceRange,
           eventType: params.filters.eventType,
+          radius: params.filters.radius,
           page: params.page.toString(),
           limit: "10",
         });
@@ -98,7 +101,7 @@ const FindEventsPageContent = () => {
       : "All events";
 
   const handleFilterChange = (
-    filterType: "dateRange" | "priceRange" | "eventType",
+    filterType: "dateRange" | "priceRange" | "eventType" | "radius",
     value: string
   ) => {
     setPage(0); // Reset to first page when filters change
@@ -113,6 +116,7 @@ const FindEventsPageContent = () => {
       dateRange: 'all',
       priceRange: 'all',
       eventType: 'all',
+      radius: '30',
     });
   };
 
@@ -218,6 +222,26 @@ const FindEventsPageContent = () => {
                     ))}
                   </div>
                 </div>
+
+                {/* Radius Filter */}
+                <div>
+                  <h4 className="text-sm font-medium">Search Radius (miles)</h4>
+                  <div className="space-y-2">
+                    {['10', '20', '30', '50', '100'].map((range) => (
+                      <label key={range} className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="radius"
+                          value={range}
+                          checked={filters.radius === range}
+                          onChange={(e) => handleFilterChange("radius", e.target.value)}
+                          className="text-primary"
+                        />
+                        <span className="text-sm">{range} miles</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
               <button 
                 onClick={resetFilters}
@@ -239,6 +263,7 @@ const FindEventsPageContent = () => {
                   dateRange: 'all',
                   priceRange: 'all',
                   eventType: 'all',
+                  radius: '30',
                 })}
                 className="text-sm text-primary hover:text-primary/80"
               >
@@ -309,12 +334,32 @@ const FindEventsPageContent = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Radius Filter */}
+              <div>
+                <h4 className="text-sm font-medium">Search Radius (miles)</h4>
+                <div className="space-y-2">
+                  {['10', '20', '30', '50', '100'].map((range) => (
+                    <label key={range} className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        name="radius"
+                        value={range}
+                        checked={filters.radius === range}
+                        onChange={(e) => handleFilterChange("radius", e.target.value)}
+                        className="text-primary"
+                      />
+                      <span className="text-sm">{range} miles</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 min-w-0">
+        <div className={`flex-1 min-w-0 ${hideMap ? 'xl:mr-0' : ''}`}>
           {/* Mobile Filters Toggle */}
           <div className="lg:hidden p-4 border-b">
             <button
@@ -328,17 +373,26 @@ const FindEventsPageContent = () => {
 
           {/* Events List */}
           <div className="p-6 lg:p-8 pb-20">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">
-              {titleText}
-            </h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-bold text-gray-900">
+                {titleText}
+              </h2>
+              <button
+                onClick={() => setHideMap(!hideMap)}
+                className="hidden xl:flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <MapIcon className="w-5 h-5" />
+                {hideMap ? 'Show Map' : 'Hide Map'}
+              </button>
+            </div>
             
-            <div className="grid gap-6">
+            <div className={`grid gap-6 ${hideMap ? 'xl:grid-cols-2' : 'grid-cols-1'}`}>
               {loading ? (
                 Array(3).fill(0).map((_, index) => (
                   <SkeletonEventCard key={index} />
                 ))
               ) : events.length === 0 ? (
-                <div className="text-center py-12">
+                <div className="text-center py-12 col-span-full">
                   <p className="text-xl text-gray-500">No events found</p>
                 </div>
               ) : (
@@ -366,36 +420,21 @@ const FindEventsPageContent = () => {
         </div>
 
         {/* Map Container */}
-        <div className="hidden xl:block w-[40%] max-w-[600px] h-[calc(100vh-5rem)] sticky top-16 right-0 p-4">
+        <div className={`hidden xl:block w-[40%] max-w-[600px] h-[calc(100vh-5rem)] sticky top-16 right-0 p-4 transition-all duration-300 ${
+          hideMap ? 'xl:hidden' : ''
+        }`}>
           <div className="relative h-full rounded-xl overflow-hidden shadow-xl border border-gray-200/20">
             {!showMap ? (
-              <div className="absolute inset-0">
-                {/* Static map background with overlay */}
-                <div className="absolute inset-0">
-                  <Image
-                    src="/map-static.jpg"
-                    alt="Map preview"
-                    fill
-                    className="object-cover blur-[2px]"
-                    priority
-                  />
-                  <div className="absolute inset-0" />
-                </div>
-                
+              <div className="absolute inset-0 bg-gray-100 dark:bg-gray-800">
                 {/* Content */}
-                <div className="relative z-10 h-full flex flex-col items-center justify-center gap-4 text-white">
-                  <h3 className="text-xl font-semibold">Interactive Map</h3>
-                  <p className="text-sm text-white text-center max-w-sm">
-                    View all events on an interactive map. This may use additional data.
-                  </p>
+                <div className="relative z-10 h-full flex flex-col items-center justify-center gap-4 text-gray-600 dark:text-gray-300">
+                  <MapIcon className="w-12 h-12" />
                   <button
                     onClick={() => {
                       setShowMap(true);
-                      setTimeout(() => {
-                        setMapInitialized(true);
-                      }, 100);
+                      setMapInitialized(true);
                     }}
-                    className="flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     <MapIcon className="w-5 h-5" />
                     Load Map

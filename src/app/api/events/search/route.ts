@@ -4,63 +4,53 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// Function to calculate distance between two points using Haversine formula
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 3963; // Earth's radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // Distance in miles
+}
+
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const eventQuery = searchParams.get("event") || "";
-  const locationQuery = searchParams.get("location") || "";
-  const dateRange = searchParams.get("dateRange") || "all";
-  const priceRange = searchParams.get("priceRange") || "all";
-  const eventType = searchParams.get("eventType") || "all";
-  const page = parseInt(searchParams.get("page") || "0", 10);
-  const limit = parseInt(searchParams.get("limit") || "10", 10);
-  const skip = page * limit;
-
   try {
-    // Build the where clause based on filters
-    const where: any = {
-      approved: true,
-      AND: [
-        {
-          title: {
-            contains: eventQuery,
-            mode: "insensitive",
-          },
-        },
-        {
-          location: {
-            contains: locationQuery,
-            mode: "insensitive",
-          },
-        },
-      ],
-    };
+    const { searchParams } = new URL(req.url);
+    const searchQuery = searchParams.get("event") || "";
+    const location = searchParams.get("location") || "";
+    const priceRange = searchParams.get("priceRange") || "all";
+    const eventType = searchParams.get("eventType") || "all";
+    const skip = parseInt(searchParams.get("skip") || "0");
+    const limit = parseInt(searchParams.get("limit") || "10");
 
-    // Add date range filter
-    if (dateRange !== "all") {
-      const now = new Date();
-      switch (dateRange) {
-        case "today":
-          where.startDate = {
-            gte: new Date(now.setHours(0, 0, 0, 0)),
-            lt: new Date(now.setHours(23, 59, 59, 999)),
-          };
-          break;
-        case "this week":
-          const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
-          const weekEnd = new Date(now.setDate(now.getDate() - now.getDay() + 6));
-          where.startDate = {
-            gte: weekStart,
-            lte: weekEnd,
-          };
-          break;
-        case "this month":
-          where.startDate = {
-            gte: new Date(now.getFullYear(), now.getMonth(), 1),
-            lte: new Date(now.getFullYear(), now.getMonth() + 1, 0),
-          };
-          break;
+    // Get the radius from search params with a default of 30 miles
+    const radius = parseInt(searchParams.get("radius") || "30");
+
+    // Get coordinates for searched location using Mapbox
+    let searchCoords;
+    if (location) {
+      const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(location)}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_API_KEY}`;
+      const response = await fetch(mapboxUrl);
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        const [longitude, latitude] = data.features[0].center;
+        searchCoords = { latitude, longitude };
       }
     }
+
+    // Base query
+    let where: any = {
+      approved: true,
+      title: {
+        contains: searchQuery,
+        mode: "insensitive",
+      },
+    };
 
     // Add price range filter
     if (priceRange !== "all") {
@@ -96,22 +86,42 @@ export async function GET(req: Request) {
       };
     }
 
-    // Perform the query with filters
-    const [events, totalEvents] = await prisma.$transaction([
-      prisma.event.findMany({
-        where,
-        orderBy: {
-          startDate: "asc",
-        },
-        skip,
-        take: limit,
-      }),
-      prisma.event.count({ where }),
-    ]);
+    // Get all events that match the base criteria
+    const events = await prisma.event.findMany({
+      where,
+      orderBy: {
+        startDate: "asc",
+      }
+    });
 
+    // Filter events by distance if location is provided
+    let filteredEvents = events;
+    if (searchCoords) {
+      filteredEvents = events.filter(event => {
+        if (!event.latitude || !event.longitude) return false;
+        
+        const distance = calculateDistance(
+          searchCoords.latitude,
+          searchCoords.longitude,
+          event.latitude,
+          event.longitude
+        );
+        
+        return distance <= radius; // Use the radius from search params
+      });
+    }
+
+    // Apply pagination after distance filtering
+    const paginatedEvents = filteredEvents.slice(skip, skip + limit);
+    const totalEvents = filteredEvents.length;
     const hasMore = skip + limit < totalEvents;
 
-    return NextResponse.json({ events, hasMore });
+    return NextResponse.json({ 
+      events: paginatedEvents, 
+      hasMore,
+      total: totalEvents 
+    });
+
   } catch (error) {
     console.error("Error fetching events:", error);
     return NextResponse.json(

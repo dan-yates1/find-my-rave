@@ -52,7 +52,7 @@ const FindEventsPageContent = () => {
           priceRange: params.filters.priceRange,
           eventType: params.filters.eventType,
           radius: params.filters.radius,
-          page: params.page.toString(),
+          skip: (params.page * 10).toString(),
           limit: "10",
         });
 
@@ -89,11 +89,16 @@ const FindEventsPageContent = () => {
   }, [eventQuery, locationQuery, filters, page, debouncedFetch]);
 
   const loadMore = () => {
-    setPage(prev => prev + 1);
+    if (!loading && hasMore) {
+      setLoading(true);
+      setPage(prev => prev + 1);
+    }
   };
 
   useEffect(() => {
+    setEvents([]);
     setPage(0);
+    setHasMore(true);
   }, [eventQuery, locationQuery, filters]);
 
   const titleText =
@@ -107,7 +112,7 @@ const FindEventsPageContent = () => {
     filterType: "dateRange" | "priceRange" | "eventType" | "radius",
     value: string
   ) => {
-    setPage(0); // Reset to first page when filters change
+    setPage(0);
     setFilters(prev => ({
       ...prev,
       [filterType]: value,
@@ -393,7 +398,7 @@ const FindEventsPageContent = () => {
             </div>
             
             <div className={`grid gap-6 ${hideMap ? 'xl:grid-cols-2' : 'grid-cols-1'}`}>
-              {loading ? (
+              {loading && page === 0 ? (
                 Array(3).fill(0).map((_, index) => (
                   <SkeletonEventCard key={index} />
                 ))
@@ -411,7 +416,8 @@ const FindEventsPageContent = () => {
                 ))
               )}
             </div>
-            {hasMore && (
+            
+            {hasMore && events.length > 0 && (
               <div className="flex justify-center py-6">
                 <button
                   onClick={loadMore}

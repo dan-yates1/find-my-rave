@@ -26,6 +26,8 @@ export async function GET(req: Request) {
     const eventType = searchParams.get("eventType") || "all";
     const skip = parseInt(searchParams.get("skip") || "0");
     const limit = parseInt(searchParams.get("limit") || "10");
+    const dateRange = searchParams.get("dateRange") || "all";
+    const customDate = searchParams.get("customDate") || "";
 
     // Get the radius from search params with a default of 30 miles
     const radius = parseInt(searchParams.get("radius") || "30");
@@ -84,6 +86,41 @@ export async function GET(req: Request) {
         equals: eventType,
         mode: "insensitive",
       };
+    }
+
+    // Add date filtering
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    if (dateRange !== "all") {
+      if (dateRange === "custom" && customDate) {
+        const selectedDate = new Date(customDate);
+        const nextDay = new Date(selectedDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        
+        where.startDate = {
+          gte: selectedDate,
+          lt: nextDay,
+        };
+      } else {
+        where.startDate = {
+          gte: today,
+        };
+
+        if (dateRange === "today") {
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          where.startDate.lt = tomorrow;
+        } else if (dateRange === "this week") {
+          const nextWeek = new Date(today);
+          nextWeek.setDate(nextWeek.getDate() + 7);
+          where.startDate.lt = nextWeek;
+        } else if (dateRange === "this month") {
+          const nextMonth = new Date(today);
+          nextMonth.setMonth(nextMonth.getMonth() + 1);
+          where.startDate.lt = nextMonth;
+        }
+      }
     }
 
     // Get all events that match the base criteria

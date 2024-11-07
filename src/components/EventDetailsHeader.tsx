@@ -15,7 +15,7 @@ const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
     day: "numeric",
     month: "long",
     year: "numeric",
-  });
+  }).replace(',', '');
 
   const formattedTime = new Date(event.startDate).toLocaleString("en-GB", {
     hour: "2-digit",
@@ -24,20 +24,34 @@ const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
 
   return (
     <div className="relative">
-      {/* Hero Image */}
-      <div className="relative h-[400px] w-full">
-        <Image
-          src={event.imageUrl || "/event-placeholder2.jpg"}
-          alt={event.title}
-          fill
-          className="object-cover"
-          priority
-        />
+      {/* Hero Image Container */}
+      <div className="relative h-[400px] w-full overflow-hidden">
+        {/* Background blurred image */}
+        <div className="absolute inset-0 scale-125" style={{ filter: 'blur(0px)' }}>
+          <Image
+            src={event.imageUrl || "/event-placeholder2.jpg"}
+            alt=""
+            fill
+            className="object-cover blur-sm"
+            priority
+          />
+        </div>
+        
+        {/* Sharp foreground image */}
+        <div className="absolute inset-0 opacity-90">
+          <Image
+            src={event.imageUrl || "/event-placeholder2.jpg"}
+            alt={event.title}
+            fill
+            className="object-cover blur-md"
+            priority
+          />
+        </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
       </div>
 
       {/* Event Info Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+      <div className="absolute bottom-0 left-0 right-0 p-8 text-white z-10">
         <div className="max-w-7xl mx-auto flex justify-between items-start">
           <div>
             <h1 className="text-4xl font-bold mb-4">{event.title}</h1>
@@ -56,10 +70,10 @@ const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
               </div>
             </div>
           </div>
-          {/* Custom styled save button for event details */}
           <SaveEventButton 
             eventId={event.id} 
-            className="text-gray-600 bg-gray-100/50 w-8 h-8 !p-1.5 !hover:bg-transparent"
+            className="bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-full p-3 transition-all duration-200"
+            iconClassName="w-7 h-7"
           />
         </div>
       </div>

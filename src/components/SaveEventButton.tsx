@@ -10,9 +10,10 @@ interface SaveEventButtonProps {
   eventId: string;
   initialSaved?: boolean;
   className?: string;
+  iconClassName?: string;
 }
 
-const SaveEventButton = ({ eventId, initialSaved = false, className = '' }: SaveEventButtonProps) => {
+const SaveEventButton = ({ eventId, initialSaved = false, className = '', iconClassName = 'w-5 h-5' }: SaveEventButtonProps) => {
   const [isSaved, setIsSaved] = useState(initialSaved);
   const [isLoading, setIsLoading] = useState(false);
   const { data: session } = useSession();
@@ -86,11 +87,11 @@ const SaveEventButton = ({ eventId, initialSaved = false, className = '' }: Save
       title={isSaved ? "Remove from saved" : "Save event"}
     >
       {isLoading ? (
-        <div className="w-5 h-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+        <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-gray-600 ${iconClassName}`} />
       ) : isSaved ? (
-        <BookmarkSolidIcon className="w-5 h-5" />
+        <BookmarkSolidIcon className={iconClassName} />
       ) : (
-        <BookmarkIcon className="w-5 h-5" />
+        <BookmarkIcon className={iconClassName} />
       )}
     </button>
   );

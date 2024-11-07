@@ -9,6 +9,7 @@ import { capitalizeFirstLetter, getLatLon } from "@/lib/utils";
 import { CalendarIcon, FunnelIcon, XMarkIcon, MapIcon } from "@heroicons/react/24/outline";
 import debounce from "lodash/debounce";
 import Image from "next/image";
+import { format } from "date-fns";
 
 const FindEventsPageContent = () => {
   const [events, setEvents] = useState<any[]>([]);
@@ -21,13 +22,14 @@ const FindEventsPageContent = () => {
     priceRange: 'all',
     eventType: 'all',
     radius: '30',
+    customDate: '',
   });
   const [centreLatLon, setCentreLatLon] = useState<[number, number]>();
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [mapInitialized, setMapInitialized] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
-  const [hideMap, setHideMap] = useState(false);
+  const [hideMap, setHideMap] = useState(true);
 
   const searchParams = useSearchParams();
   const eventQuery = searchParams.get("event") || "";
@@ -46,6 +48,7 @@ const FindEventsPageContent = () => {
           event: params.eventQuery,
           location: params.locationQuery,
           dateRange: params.filters.dateRange,
+          customDate: params.filters.customDate,
           priceRange: params.filters.priceRange,
           eventType: params.filters.eventType,
           radius: params.filters.radius,
@@ -117,6 +120,7 @@ const FindEventsPageContent = () => {
       priceRange: 'all',
       eventType: 'all',
       radius: '30',
+      customDate: '',
     });
   };
 
@@ -127,6 +131,85 @@ const FindEventsPageContent = () => {
       setMapInitialized(false);
     };
   }, []);
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const date = e.target.value;
+    setFilters(prev => ({
+      ...prev,
+      dateRange: 'custom',
+      customDate: date,
+    }));
+  };
+
+  const DateRangeFilter = () => (
+    <div className="space-y-4">
+      <h4 className="text-sm font-medium flex items-center gap-2">
+        <CalendarIcon className="w-4 h-4" />
+        Date Range
+      </h4>
+      <div className="space-y-2">
+        {['Today', 'This Week', 'This Month', 'All'].map((range) => (
+          <label key={range} className="flex items-center space-x-2">
+            <input
+              type="radio"
+              name="dateRange"
+              value={range.toLowerCase()}
+              checked={filters.dateRange === range.toLowerCase()}
+              onChange={(e) => handleFilterChange("dateRange", e.target.value)}
+              className="text-primary"
+            />
+            <span className="text-sm">{range}</span>
+          </label>
+        ))}
+        <div className="flex items-center space-x-2">
+          <input
+            type="radio"
+            name="dateRange"
+            value="custom"
+            checked={filters.dateRange === 'custom'}
+            onChange={(e) => handleFilterChange("dateRange", e.target.value)}
+            className="text-primary"
+          />
+          <input
+            type="date"
+            value={filters.customDate}
+            onChange={handleDateChange}
+            className={`text-sm p-1 rounded border ${
+              filters.dateRange === 'custom' 
+                ? 'border-blue-600' 
+                : 'border-gray-300'
+            }`}
+            min={format(new Date(), 'yyyy-MM-dd')}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const RadiusFilter = () => {
+    if (!locationQuery) return null;
+
+    return (
+      <div>
+        <h4 className="text-sm font-medium">Search Radius (miles)</h4>
+        <div className="space-y-2">
+          {['10', '20', '30', '50', '100'].map((range) => (
+            <label key={range} className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name="radius"
+                value={range}
+                checked={filters.radius === range}
+                onChange={(e) => handleFilterChange("radius", e.target.value)}
+                className="text-primary"
+              />
+              <span className="text-sm">{range} miles</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
@@ -160,28 +243,7 @@ const FindEventsPageContent = () => {
                 </button>
               </div>
               <div className="space-y-8">
-                {/* Date Filter */}
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium flex items-center gap-2">
-                    <CalendarIcon className="w-4 h-4" />
-                    Date Range
-                  </h4>
-                  <div className="space-y-2">
-                    {['Today', 'This Week', 'This Month', 'All'].map((range) => (
-                      <label key={range} className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          name="dateRange"
-                          value={range.toLowerCase()}
-                          checked={filters.dateRange === range.toLowerCase()}
-                          onChange={(e) => handleFilterChange("dateRange", e.target.value)}
-                          className="text-primary"
-                        />
-                        <span className="text-sm">{range}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <DateRangeFilter />
 
                 {/* Event Type Filter */}
                 <div className="space-y-4">
@@ -223,25 +285,7 @@ const FindEventsPageContent = () => {
                   </div>
                 </div>
 
-                {/* Radius Filter */}
-                <div>
-                  <h4 className="text-sm font-medium">Search Radius (miles)</h4>
-                  <div className="space-y-2">
-                    {['10', '20', '30', '50', '100'].map((range) => (
-                      <label key={range} className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          name="radius"
-                          value={range}
-                          checked={filters.radius === range}
-                          onChange={(e) => handleFilterChange("radius", e.target.value)}
-                          className="text-primary"
-                        />
-                        <span className="text-sm">{range} miles</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <RadiusFilter />
               </div>
               <button 
                 onClick={resetFilters}
@@ -264,6 +308,7 @@ const FindEventsPageContent = () => {
                   priceRange: 'all',
                   eventType: 'all',
                   radius: '30',
+                  customDate: '',
                 })}
                 className="text-sm text-primary hover:text-primary/80"
               >
@@ -272,28 +317,7 @@ const FindEventsPageContent = () => {
             </div>
 
             <div className="space-y-8">
-              {/* Date Filter */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-medium flex items-center gap-2">
-                  <CalendarIcon className="w-4 h-4" />
-                  Date Range
-                </h4>
-                <div className="space-y-2">
-                  {['Today', 'This Week', 'This Month', 'All'].map((range) => (
-                    <label key={range} className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        name="dateRange"
-                        value={range.toLowerCase()}
-                        checked={filters.dateRange === range.toLowerCase()}
-                        onChange={(e) => handleFilterChange("dateRange", e.target.value)}
-                        className="text-primary"
-                      />
-                      <span className="text-sm">{range}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+              <DateRangeFilter />
 
               {/* Event Type Filter */}
               <div className="space-y-4">
@@ -335,25 +359,7 @@ const FindEventsPageContent = () => {
                 </div>
               </div>
 
-              {/* Radius Filter */}
-              <div>
-                <h4 className="text-sm font-medium">Search Radius (miles)</h4>
-                <div className="space-y-2">
-                  {['10', '20', '30', '50', '100'].map((range) => (
-                    <label key={range} className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        name="radius"
-                        value={range}
-                        checked={filters.radius === range}
-                        onChange={(e) => handleFilterChange("radius", e.target.value)}
-                        className="text-primary"
-                      />
-                      <span className="text-sm">{range} miles</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+              <RadiusFilter />
             </div>
           </div>
         </div>

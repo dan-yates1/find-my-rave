@@ -6,7 +6,6 @@ import Image from "next/image";
 import {
   MapIcon,
   ClockIcon,
-  UsersIcon,
   CalendarIcon,
 } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
@@ -41,7 +40,7 @@ const EventCard = ({ event, saved = false, onHover }: EventCardProps) => {
     weekday: "short",
     day: "numeric",
     month: "short",
-  });
+  }).replace(',', '');
 
   const formattedTime = new Date(event.startDate).toLocaleString("en-GB", {
     hour: "2-digit",
@@ -55,11 +54,6 @@ const EventCard = ({ event, saved = false, onHover }: EventCardProps) => {
       onMouseLeave={handleMouseLeave}
       className="group relative overflow-hidden rounded-2xl hover-effect border border-gray-200/20 dark:border-gray-700/20 cursor-pointer"
     >
-      {/* Save Button - Only visible on hover */}
-      <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        <SaveEventButton eventId={event.id} initialSaved={saved} />
-      </div>
-
       <div className="flex flex-col md:flex-row gap-6 p-4">
         {/* Image Container */}
         <div className="relative w-full md:w-48 h-48 md:h-32 overflow-hidden rounded-xl">
@@ -92,13 +86,14 @@ const EventCard = ({ event, saved = false, onHover }: EventCardProps) => {
                 <MapIcon className="w-4 h-4" />
                 {event.location.split(",")[0]}
               </div>
-              <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
-                <UsersIcon className="w-4 h-4" />
-                100 attending
-              </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Save Button - Bottom right with hover effect */}
+      <div className="absolute bottom-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <SaveEventButton eventId={event.id} initialSaved={saved} />
       </div>
     </div>
   );

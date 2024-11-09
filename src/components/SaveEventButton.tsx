@@ -13,7 +13,12 @@ interface SaveEventButtonProps {
   iconClassName?: string;
 }
 
-const SaveEventButton = ({ eventId, initialSaved = false, className = '', iconClassName = 'w-5 h-5' }: SaveEventButtonProps) => {
+const SaveEventButton = ({
+  eventId,
+  initialSaved = false,
+  className = "",
+  iconClassName = "w-6 h-6",
+}: SaveEventButtonProps) => {
   const [isSaved, setIsSaved] = useState(initialSaved);
   const [isLoading, setIsLoading] = useState(false);
   const { data: session } = useSession();

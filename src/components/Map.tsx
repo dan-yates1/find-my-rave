@@ -10,9 +10,10 @@ interface MapProps {
   centreLatLon?: [number, number];
   className?: string;
   hoveredEventId?: string | null;
+  center?: [number, number];
 }
 
-const Map: React.FC<MapProps> = ({ events, centreLatLon, className = "", hoveredEventId }) => {
+const Map: React.FC<MapProps> = ({ events, centreLatLon, className = "", hoveredEventId, center }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);

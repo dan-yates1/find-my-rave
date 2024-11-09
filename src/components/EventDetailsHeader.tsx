@@ -34,7 +34,7 @@ const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
     if (!confirm('Are you sure you want to delete this event?')) return;
     
     try {
-      const response = await fetch(`/api/events/${event.id}`, {
+      const response = await fetch(`/api/events?id=${event.id}`, {
         method: 'DELETE',
       });
 

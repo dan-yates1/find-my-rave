@@ -1,169 +1,77 @@
 // src/app/api/events/search/route.ts
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import axios from "axios";
 
-const prisma = new PrismaClient();
-
-// Function to calculate distance between two points using Haversine formula
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 3963; // Earth's radius in miles
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c; // Distance in miles
-}
+const EVENTS_API_URL = process.env.EVENTS_API_URL || "http://localhost:8000";
+const MAPBOX_API_KEY = process.env.NEXT_PUBLIC_MAPBOX_API_KEY;
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const searchQuery = searchParams.get("event") || "";
     const location = searchParams.get("location") || "";
-    const priceRange = searchParams.get("priceRange") || "all";
-    const eventType = searchParams.get("eventType") || "all";
     const skip = parseInt(searchParams.get("skip") || "0");
     const limit = parseInt(searchParams.get("limit") || "10");
-    const dateRange = searchParams.get("dateRange") || "all";
-    const customDate = searchParams.get("customDate") || "";
+    const eventType = searchParams.get("eventType") || "CLUB";
 
-    // Get the radius from search params with a default of 30 miles
-    const radius = parseInt(searchParams.get("radius") || "30");
+    // If this is a location suggestion request
+    if (searchParams.get("type") === "location-suggestions") {
+      if (!location) {
+        return NextResponse.json({ suggestions: [] });
+      }
 
-    // Get coordinates for searched location using Mapbox
-    let searchCoords;
-    if (location) {
-      const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(location)}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_API_KEY}`;
+      const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+        location
+      )}.json?access_token=${MAPBOX_API_KEY}&country=GB&types=place,locality`;
+
       const response = await fetch(mapboxUrl);
       const data = await response.json();
-      
-      if (data.features && data.features.length > 0) {
-        const [longitude, latitude] = data.features[0].center;
-        searchCoords = { latitude, longitude };
-      }
+
+      const suggestions = data.features?.map((feature: any) => ({
+        name: feature.place_name,
+        coordinates: feature.center,
+      })) || [];
+
+      return NextResponse.json({ suggestions });
     }
 
-    // Base query
-    let where: any = {
-      approved: true,
-      title: {
-        contains: searchQuery,
-        mode: "insensitive",
-      },
+    // Otherwise, this is an event search request
+    const params = {
+      keywords: searchQuery.replace(/\s+/g, '+'),
+      location: location,
+      max_events: (skip + limit).toString() // Request enough events to cover pagination
     };
 
-    // Add price range filter
-    if (priceRange !== "all") {
-      switch (priceRange) {
-        case "free":
-          where.price = 0;
-          break;
-        case "£0-£20":
-          where.price = {
-            gte: 0,
-            lte: 20,
-          };
-          break;
-        case "£20-£50":
-          where.price = {
-            gt: 20,
-            lte: 50,
-          };
-          break;
-        case "£50+":
-          where.price = {
-            gt: 50,
-          };
-          break;
-      }
-    }
+    console.log('Fetching events from custom API:', params);
 
-    // Add event type filter
-    if (eventType !== "all") {
-      where.eventType = {
-        equals: eventType,
-        mode: "insensitive",
-      };
-    }
-
-    // Add date filtering
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    if (dateRange !== "all") {
-      if (dateRange === "custom" && customDate) {
-        const selectedDate = new Date(customDate);
-        const nextDay = new Date(selectedDate);
-        nextDay.setDate(nextDay.getDate() + 1);
-        
-        where.startDate = {
-          gte: selectedDate,
-          lt: nextDay,
-        };
-      } else {
-        where.startDate = {
-          gte: today,
-        };
-
-        if (dateRange === "today") {
-          const tomorrow = new Date(today);
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          where.startDate.lt = tomorrow;
-        } else if (dateRange === "this week") {
-          const nextWeek = new Date(today);
-          nextWeek.setDate(nextWeek.getDate() + 7);
-          where.startDate.lt = nextWeek;
-        } else if (dateRange === "this month") {
-          const nextMonth = new Date(today);
-          nextMonth.setMonth(nextMonth.getMonth() + 1);
-          where.startDate.lt = nextMonth;
-        }
-      }
-    }
-
-    // Get all events that match the base criteria
-    const events = await prisma.event.findMany({
-      where,
-      orderBy: {
-        startDate: "asc",
+    const response = await axios.get(`${EVENTS_API_URL}/events/`, {
+      params,
+      headers: {
+        'Accept': 'application/json',
       }
     });
 
-    // Filter events by distance if location is provided
-    let filteredEvents = events;
-    if (searchCoords) {
-      filteredEvents = events.filter(event => {
-        if (!event.latitude || !event.longitude) return false;
-        
-        const distance = calculateDistance(
-          searchCoords.latitude,
-          searchCoords.longitude,
-          event.latitude,
-          event.longitude
-        );
-        
-        return distance <= radius; // Use the radius from search params
-      });
-    }
-
-    // Apply pagination after distance filtering
-    const paginatedEvents = filteredEvents.slice(skip, skip + limit);
-    const totalEvents = filteredEvents.length;
+    const allEvents = response.data || [];
+    
+    // Handle pagination
+    const paginatedEvents = allEvents.slice(skip, skip + limit);
+    const totalEvents = allEvents.length;
     const hasMore = skip + limit < totalEvents;
 
-    return NextResponse.json({ 
-      events: paginatedEvents, 
+    return NextResponse.json({
+      events: paginatedEvents,
       hasMore,
-      total: totalEvents 
+      total: totalEvents
     });
 
-  } catch (error) {
-    console.error("Error fetching events:", error);
+  } catch (error: any) {
+    console.error("Error:", error.message);
     return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
+      { 
+        message: "Error fetching data",
+        details: error.message
+      },
+      { status: error.response?.status || 500 }
     );
   }
 }

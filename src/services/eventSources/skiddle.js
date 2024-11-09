@@ -31,7 +31,7 @@ async function scrapeSkiddleEvents() {
       
       for (const event of apiEvents) {
         events.push({
-          id: `skiddle_${event.id}`,
+          id: event.id,
           title: event.eventname,
           description: event.description || '',
           startDate: new Date(event.startdate),
@@ -42,7 +42,8 @@ async function scrapeSkiddleEvents() {
           price: parseFloat(event.entryprice) || 0,
           link: event.link,
           latitude: parseFloat(event.venue.latitude) || null,
-          longitude: parseFloat(event.venue.longitude) || null
+          longitude: parseFloat(event.venue.longitude) || null,
+          slug: `skiddle-${event.id}`
         })
       }
       

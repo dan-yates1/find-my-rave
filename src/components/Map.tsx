@@ -1,255 +1,91 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
-import { Event } from "@prisma/client";
+import { useEffect, useRef } from 'react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import { Event } from '@prisma/client';
+
+// Ensure mapboxgl only runs on the client side
+if (typeof window !== 'undefined') {
+  mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_API_KEY as string;
+}
 
 interface MapProps {
   events: Event[];
-  centreLatLon?: [number, number];
-  className?: string;
-  hoveredEventId?: string | null;
   center?: [number, number];
+  onMarkerClick?: (eventId: string) => void;
 }
 
-const Map: React.FC<MapProps> = ({ events, centreLatLon, className = "", hoveredEventId, center }) => {
+export default function Map({ events, center, onMarkerClick }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const markers = useRef<mapboxgl.Marker[]>([]);
 
-  // Initialize map
+  const centreLatLon = center || [events[0]?.longitude || -0.127758, events[0]?.latitude || 51.507351];
+
   useEffect(() => {
-    if (!mapContainer.current) return;
+    if (!mapContainer.current || map.current) return;
 
-    // Always create a new map instance
-    if (map.current) {
-      map.current.remove();
-    }
-
-    const newMap = new mapboxgl.Map({
+    // Initialize map
+    map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      accessToken: process.env.NEXT_PUBLIC_MAPBOX_API_KEY,
-      style: "mapbox://styles/mapbox/dark-v11",
-      center: centreLatLon ? [centreLatLon[1], centreLatLon[0]] : [-0.118092, 51.509865],
-      zoom: 11,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: centreLatLon,
+      zoom: 11
     });
 
-    // Wait for both style and map to be loaded
-    newMap.on('style.load', () => {
-      if (newMap.loaded()) {
-        setMapLoaded(true);
-      }
-    });
-
-    newMap.on('load', () => {
-      if (newMap.isStyleLoaded()) {
-        setMapLoaded(true);
-      }
-    });
-
-    map.current = newMap;
+    // Add navigation controls
+    map.current.addControl(new mapboxgl.NavigationControl());
 
     return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
+      map.current?.remove();
+      map.current = null;
     };
   }, []);
 
-  // Add layers after map is loaded
   useEffect(() => {
-    if (!map.current || !mapLoaded || !events.length) return;
+    if (!map.current) return;
 
-    try {
-      // Check if source already exists and remove it if it does
-      if (map.current.getSource("events")) {
-        map.current.removeLayer("clusters");
-        map.current.removeLayer("cluster-count");
-        map.current.removeLayer("unclustered-point");
-        map.current.removeSource("events");
+    // Clear existing markers
+    markers.current.forEach(marker => marker.remove());
+    markers.current = [];
+
+    // Add new markers
+    events.forEach(event => {
+      if (event.latitude && event.longitude) {
+        const el = document.createElement('div');
+        el.className = 'marker';
+        el.style.width = '25px';
+        el.style.height = '25px';
+        el.style.backgroundImage = 'url(/marker.png)';
+        el.style.backgroundSize = 'cover';
+        el.style.cursor = 'pointer';
+
+        const marker = new mapboxgl.Marker(el)
+          .setLngLat([event.longitude, event.latitude])
+          .addTo(map.current!);
+
+        if (onMarkerClick) {
+          el.addEventListener('click', () => onMarkerClick(event.id));
+        }
+
+        markers.current.push(marker);
       }
-
-      // Add custom layer for event clusters
-      map.current.addSource("events", {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: events
-            .filter((event) => event.latitude && event.longitude)
-            .map((event) => ({
-              type: "Feature",
-              geometry: {
-                type: "Point",
-                coordinates: [event.longitude!, event.latitude!],
-              },
-              properties: {
-                id: event.id,
-                title: event.title,
-                location: event.location,
-              },
-            })),
-        },
-        cluster: true,
-        clusterMaxZoom: 14,
-        clusterRadius: 50,
-      });
-
-      // Add cluster layer
-      map.current.addLayer({
-        id: "clusters",
-        type: "circle",
-        source: "events",
-        filter: ["has", "point_count"],
-        paint: {
-          "circle-color": [
-            "step",
-            ["get", "point_count"],
-            "#4F46E5",
-            10,
-            "#3730A3",
-            30,
-            "#312E81",
-          ],
-          "circle-radius": [
-            "step",
-            ["get", "point_count"],
-            20,
-            10,
-            30,
-            30,
-            40,
-          ],
-          "circle-opacity": 0.9,
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#fff",
-          "circle-stroke-opacity": 0.5,
-        },
-      });
-
-      // Add cluster count
-      map.current.addLayer({
-        id: "cluster-count",
-        type: "symbol",
-        source: "events",
-        filter: ["has", "point_count"],
-        layout: {
-          "text-field": "{point_count_abbreviated}",
-          "text-size": 14,
-          "text-font": ["DIN Pro Medium", "Arial Unicode MS Bold"],
-        },
-        paint: {
-          "text-color": "#ffffff",
-        },
-      });
-
-      // Add individual event points
-      map.current.addLayer({
-        id: "unclustered-point",
-        type: "circle",
-        source: "events",
-        filter: ["!", ["has", "point_count"]],
-        paint: {
-          "circle-color": "#4F46E5",
-          "circle-radius": 12,
-          "circle-opacity": 0.9,
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#fff",
-          "circle-stroke-opacity": 0.5,
-        },
-      });
-
-      // Add popup on hover
-      const popup = new mapboxgl.Popup({
-        closeButton: false,
-        closeOnClick: false,
-      });
-
-      map.current.on("mouseenter", "unclustered-point", (e) => {
-        if (!map.current || !e.features?.[0].geometry) return;
-        
-        const coordinates = (e.features[0].geometry as any).coordinates.slice();
-        const properties = e.features[0].properties as { title: string; location: string };
-
-        map.current.getCanvas().style.cursor = "pointer";
-
-        popup
-          .setLngLat(coordinates)
-          .setHTML(
-            `<div class="p-2">
-              <h3 class="font-semibold">${properties.title}</h3>
-              <p class="text-sm text-gray-600">${properties.location}</p>
-            </div>`
-          )
-          .addTo(map.current);
-      });
-
-      map.current.on("mouseleave", "unclustered-point", () => {
-        if (!map.current) return;
-        map.current.getCanvas().style.cursor = "";
-        popup.remove();
-      });
-    } catch (error) {
-      console.error("Error adding map layers:", error);
-    }
-  }, [events, mapLoaded]);
-
-  // Update map data when events change
-  useEffect(() => {
-    if (!map.current || !mapLoaded || !events.length) return;
-
-    const source = map.current.getSource("events") as mapboxgl.GeoJSONSource;
-    if (source) {
-      source.setData({
-        type: "FeatureCollection",
-        features: events
-          .filter((event) => event.latitude && event.longitude)
-          .map((event) => ({
-            type: "Feature",
-            geometry: {
-              type: "Point",
-              coordinates: [event.longitude!, event.latitude!],
-            },
-            properties: {
-              id: event.id,
-              title: event.title,
-              location: event.location,
-            },
-          })),
-      });
-    }
-  }, [events, mapLoaded]);
-
-  // Update map center when centreLatLon changes
-  useEffect(() => {
-    if (!map.current || !mapLoaded || !centreLatLon) return;
-
-    map.current.flyTo({
-      center: [centreLatLon[1], centreLatLon[0]],
-      zoom: 11,
-      duration: 1500,
-      essential: true
     });
-  }, [centreLatLon, mapLoaded]);
 
-  // Handle hover state
-  useEffect(() => {
-    if (!map.current || !mapLoaded || !hoveredEventId || !events.length) return;
-
-    const hoveredEvent = events.find(event => event.id === hoveredEventId);
-    if (hoveredEvent?.latitude && hoveredEvent?.longitude) {
-      map.current.flyTo({
-        center: [hoveredEvent.longitude, hoveredEvent.latitude],
-        zoom: 12,
-        duration: 1500,
-        padding: { top: 50, bottom: 50, left: 50, right: 50 },
-        essential: true
+    // Fit bounds if multiple events
+    if (events.length > 1) {
+      const bounds = new mapboxgl.LngLatBounds();
+      events.forEach(event => {
+        if (event.latitude && event.longitude) {
+          bounds.extend([event.longitude, event.latitude]);
+        }
       });
+      map.current.fitBounds(bounds, { padding: 50 });
     }
-  }, [hoveredEventId, events, mapLoaded]);
+  }, [events, onMarkerClick]);
 
-  return <div ref={mapContainer} className={`w-full h-full ${className}`} />;
-};
-
-export default Map;
+  return (
+    <div ref={mapContainer} className="w-full h-full" />
+  );
+}

@@ -59,33 +59,32 @@ const nextConfig = {
     ],
   },
   webpack: (config, { isServer }) => {
-    config.optimization.splitChunks = {
-      chunks: 'all',
-      cacheGroups: {
-        default: false,
-        vendors: false,
-        vendor: {
-          name: 'vendor',
-          chunks: 'all',
-          test: /node_modules/,
-          priority: 20
+    if (!isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          default: false,
+          vendors: false,
+          vendor: {
+            name: 'vendor',
+            chunks: (chunk) => chunk.name !== 'client',
+            test: /[\\/]node_modules[\\/]/,
+            priority: 20,
+          },
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'async',
+            priority: 10,
+            reuseExistingChunk: true,
+            enforce: true,
+          },
         },
-        common: {
-          name: 'common',
-          minChunks: 2,
-          chunks: 'all',
-          priority: 10,
-          reuseExistingChunk: true,
-          enforce: true
-        }
-      }
-    };
+      };
+    }
     return config;
   },
   staticPageGenerationTimeout: 1000,
-  experimental: {
-    serverActions: true,
-  }
 };
 
 export default nextConfig;

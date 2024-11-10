@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     const searchQuery = searchParams.get("event") || "";
     const location = searchParams.get("location") || "";
     const skip = parseInt(searchParams.get("skip") || "0");
-    const limit = parseInt(searchParams.get("limit") || "12");
+    const limit = parseInt(searchParams.get("limit") || "36");
     
     const cacheKey = `events:${searchQuery}:${location}:${skip}:${limit}`;
     console.log('Checking cache for key:', cacheKey);

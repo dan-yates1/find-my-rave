@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     const searchQuery = searchParams.get("event") || "";
     const location = searchParams.get("location") || "";
     const skip = parseInt(searchParams.get("skip") || "0");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const limit = parseInt(searchParams.get("limit") || "12");
     
     const cacheKey = `events:${searchQuery}:${location}:${skip}:${limit}`;
     console.log('Checking cache for key:', cacheKey);
@@ -59,8 +59,13 @@ export async function GET(req: Request) {
       ...(event.platform && { platform: event.platform })
     }));
     
-    const paginatedEvents = eventsWithPlatform.slice(skip, skip + limit);
-    const totalEvents = eventsWithPlatform.length;
+    // Sort events by date (closest first)
+    const sortedEvents = eventsWithPlatform.sort((a: any, b: any) => {
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+    });
+    
+    const paginatedEvents = sortedEvents.slice(skip, skip + limit);
+    const totalEvents = sortedEvents.length;
     const hasMore = skip + limit < totalEvents;
 
     const responseData: CachedData = {

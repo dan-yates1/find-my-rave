@@ -43,15 +43,15 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b py-1 border-gray-200">
-      <nav className="mx-auto px-8 sm:px-12">
-        <div className="flex items-center justify-between h-16">
+      <nav className="mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+          <Link href="/" className="flex-shrink-0">
             <span className="text-xl font-black text-blue-600">FINDMYRAVE</span>
           </Link>
 
           {/* Search Bar - Desktop */}
-          <div className="hidden lg:flex flex-1 justify-center px-16">
+          <div className="hidden lg:flex flex-1">
             <SearchBar onSearch={handleSearch} />
           </div>
 
@@ -62,19 +62,19 @@ export default function Navbar() {
 
           {/* Navigation and Profile - Desktop */}
           <div className="hidden lg:flex lg:items-center flex-shrink-0">
-            <div className="flex items-center space-x-8">
+            <div className="flex items-center space-x-4">
               <Link
                 href="/find-events"
-                className="text-[#39364F] font-medium hover:text-[#1a1f2e] transition-colors"
+                className="text-[#39364F] font-medium hover:bg-gray-100 rounded-full px-4 py-2 transition-colors"
               >
                 Find Events
               </Link>
-              <Link
+              {/* <Link
                 href="/create-event"
-                className="text-[#39364F] font-medium hover:text-[#1a1f2e] transition-colors"
+                className="text-[#39364F] font-medium hover:bg-gray-100 rounded-full px-4 py-2 transition-colors"
               >
                 Create Events
-              </Link>
+              </Link> */}
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowProfileMenu(!showProfileMenu)}

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { MapPinIcon } from "@heroicons/react/24/solid";
-import useDebounce from "@/hooks/useDebounce";
+import { useDebounce } from "@/hooks/useDebounce";
 
 interface SearchBarProps {
   onSearch: (params: { input: string; location: string }) => void;
@@ -51,12 +51,20 @@ export default function SearchBar({
       if (debouncedLocation.trim() && isFocused) {
         try {
           const response = await fetch(
-            `/api/events/search?type=location-suggestions&location=${encodeURIComponent(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
               debouncedLocation
-            )}`
+            )}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_API_KEY}&types=place&limit=5`
           );
           const data = await response.json();
-          setLocationSuggestions(data.suggestions || []);
+          const suggestions = data.features.map((feature: any) => ({
+            name: feature.place_name,
+            mainPlace: feature.text,
+            subtext: feature.context
+              ?.map((ctx: any) => ctx.text)
+              .filter(Boolean)
+              .join(', ')
+          }));
+          setLocationSuggestions(suggestions);
           setShowSuggestions(true);
         } catch (error) {
           console.error("Error fetching location suggestions:", error);
@@ -102,9 +110,13 @@ export default function SearchBar({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-3xl">
+    <form onSubmit={handleSubmit} className="w-full px-8">
       <div className="flex h-12 bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-shadow duration-200">
-        <div className="flex-1 flex items-center pl-6">
+        <div className="flex items-center pl-6">
+          <MagnifyingGlassIcon className="h-5 w-5 stroke-2 text-gray-400" />
+        </div>
+
+        <div className="flex-1 flex items-center pl-3">
           <input
             type="text"
             placeholder="Search events..."
@@ -119,7 +131,7 @@ export default function SearchBar({
         </div>
 
         <div className="flex-1 relative flex items-center pl-2">
-          <MapPinIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+          <MapPinIcon className="h-5 w-5 text-gray-400" />
           <input
             type="text"
             placeholder="Location..."
@@ -152,23 +164,26 @@ export default function SearchBar({
                 <button
                   key={index}
                   type="button"
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                  className="w-full px-4 py-2 text-left hover:bg-gray-50"
                   onClick={() => handleLocationSelect(suggestion.name)}
                 >
-                  <MapPinIcon className="h-5 w-5 text-gray-400" />
-                  <span className="text-gray-700">{suggestion.name}</span>
+                  <div className="text-sm text-gray-900">{suggestion.mainPlace}</div>
+                  <div className="text-xs text-gray-500">{suggestion.subtext}</div>
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        <button
-          type="submit"
-          className="h-full px-6 flex items-center justify-center bg-blue-600 text-white rounded-r-full hover:bg-blue-700 transition-colors"
-        >
-          <MagnifyingGlassIcon className="h-5 w-5" />
-        </button>
+        <div className="pr-2 pl-1 flex items-center">
+          <button
+            type="submit"
+            className="p-2 bg-blue-600 rounded-full hover:bg-blue-700 transition-colors"
+            aria-label="Search"
+          >
+            <MagnifyingGlassIcon className="h-5 w-5 text-white" />
+          </button>
+        </div>
       </div>
     </form>
   );

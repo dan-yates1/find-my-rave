@@ -13,11 +13,11 @@ interface SaveEventButtonProps {
   iconClassName?: string;
 }
 
-const SaveEventButton = ({
-  eventId,
+const SaveEventButton = ({ 
+  eventId, 
   initialSaved = false,
   className = "",
-  iconClassName = "w-6 h-6",
+  iconClassName = "w-5 h-5"
 }: SaveEventButtonProps) => {
   const [isSaved, setIsSaved] = useState(initialSaved);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,33 +25,30 @@ const SaveEventButton = ({
   const router = useRouter();
 
   useEffect(() => {
-    const checkIfSaved = async () => {
-      if (session) {
-        try {
-          const response = await fetch('/api/user/check-saved-events');
-          if (response.ok) {
-            const { savedEventIds } = await response.json();
-            setIsSaved(savedEventIds.includes(eventId));
-          }
-        } catch (error) {
-          console.error('Error checking saved status:', error);
-        }
+    // Check if event is saved
+    const checkSavedStatus = async () => {
+      if (!session?.user?.email) return;
+      
+      try {
+        const response = await fetch('/api/user/check-saved-events');
+        const data = await response.json();
+        setIsSaved(data.savedEventIds?.includes(eventId) || false);
+      } catch (error) {
+        console.error('Error checking saved status:', error);
       }
     };
 
-    checkIfSaved();
-  }, [eventId, session]);
+    checkSavedStatus();
+  }, [session?.user?.email, eventId]);
 
-  const handleSave = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent event bubbling if used in a card
-    
+  const handleSave = async () => {
     if (!session) {
       router.push('/login-register');
       return;
     }
 
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const response = await fetch('/api/user/save-event', {
         method: 'POST',
         headers: {
@@ -63,12 +60,9 @@ const SaveEventButton = ({
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to save event');
+      if (response.ok) {
+        setIsSaved(!isSaved);
       }
-
-      setIsSaved(!isSaved);
-      router.refresh();
     } catch (error) {
       console.error('Error saving event:', error);
     } finally {
@@ -80,20 +74,10 @@ const SaveEventButton = ({
     <button
       onClick={handleSave}
       disabled={isLoading}
-      className={`
-        p-2 rounded-full transition-colors duration-200
-        ${isSaved 
-          ? 'text-blue-500' 
-          : 'text-gray-600 hover:bg-gray-100'
-        }
-        ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
-        ${className}
-      `}
-      title={isSaved ? "Remove from saved" : "Save event"}
+      className={`${className} disabled:opacity-50`}
+      aria-label={isSaved ? "Unsave event" : "Save event"}
     >
-      {isLoading ? (
-        <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-gray-600 ${iconClassName}`} />
-      ) : isSaved ? (
+      {isSaved ? (
         <BookmarkSolidIcon className={iconClassName} />
       ) : (
         <BookmarkIcon className={iconClassName} />

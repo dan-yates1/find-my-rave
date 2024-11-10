@@ -21,6 +21,7 @@ interface Filters {
   eventType?: string;
   radius?: string;
   customDate?: string;
+  sortBy?: 'date' | 'relevance';
 }
 
 const FindEventsPageContent = () => {
@@ -35,9 +36,23 @@ const FindEventsPageContent = () => {
     eventType: 'all',
     radius: '30',
     customDate: '',
+    sortBy: 'date',
   });
   const [events, setEvents] = useState<ExtendedEvent[]>([]);
   const [page, setPage] = useState(1);
+
+  // Add this effect to update queries when URL params change
+  useEffect(() => {
+    const newEventQuery = searchParams.get("event") || "";
+    const newLocationQuery = searchParams.get("location") || "";
+    
+    if (newEventQuery !== eventQuery || newLocationQuery !== locationQuery) {
+      setEventQuery(newEventQuery);
+      setLocationQuery(newLocationQuery);
+      setEvents([]); // Clear existing events
+      setPage(1); // Reset to first page
+    }
+  }, [searchParams, eventQuery, locationQuery]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['events', eventQuery, locationQuery, filters, page],
@@ -45,8 +60,8 @@ const FindEventsPageContent = () => {
       const params = new URLSearchParams({
         event: eventQuery,
         location: locationQuery,
-        skip: ((page - 1) * 10).toString(),
-        limit: '10',
+        skip: ((page - 1) * 12).toString(),
+        limit: '12',
         ...(filters.platform !== 'all' && { platform: filters.platform }),
       });
 
@@ -64,12 +79,6 @@ const FindEventsPageContent = () => {
     staleTime: 1000 * 60 * 5,
     enabled: Boolean(eventQuery || locationQuery),
   });
-
-  // Reset events when search params change
-  useEffect(() => {
-    setEvents([]);
-    setPage(1);
-  }, [eventQuery, locationQuery, filters]);
 
   // Update events based on page
   useEffect(() => {
@@ -98,6 +107,15 @@ const FindEventsPageContent = () => {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">{titleText}</h1>
             <div className="flex items-center gap-4">
+              <select
+                value={filters.sortBy}
+                onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                className="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="date">Sort by Date</option>
+                <option value="relevance">Sort by Relevance</option>
+              </select>
+              
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
@@ -119,16 +137,16 @@ const FindEventsPageContent = () => {
 
       {/* Events List */}
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
           {isLoading ? (
-            Array.from({ length: 8 }).map((_, i) => (
+            Array.from({ length: 12 }).map((_, i) => (
               <SkeletonEventCard key={i} />
             ))
           ) : events.length > 0 ? (
             events.map((event) => (
               <div 
                 key={event.id}
-                className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 h-fit"
+                className="h-full"
               >
                 <EventCard
                   event={event}
@@ -148,7 +166,7 @@ const FindEventsPageContent = () => {
           )}
         </div>
 
-        {/* Load More button */}
+        {/* Show More Button */}
         {data?.hasMore && events.length > 0 && (
           <div className="flex justify-center mt-8">
             <button

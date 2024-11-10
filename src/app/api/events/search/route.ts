@@ -1,9 +1,20 @@
 // src/app/api/events/search/route.ts
-import { NextResponse } from "next/server";
-import axios from "axios";
+import { NextResponse } from 'next/server';
+import axios from 'axios';
+import { redis } from '@/lib/redis';
 
-const EVENTS_API_URL = process.env.EVENTS_API_URL || "http://localhost:8000";
-const MAPBOX_API_KEY = process.env.NEXT_PUBLIC_MAPBOX_API_KEY;
+interface Event {
+  id: string;
+  title: string;
+  // ... other event fields ...
+  platform: string;
+}
+
+interface CachedData {
+  events: Event[];
+  hasMore: boolean;
+  total: number;
+}
 
 export async function GET(req: Request) {
   try {
@@ -12,39 +23,30 @@ export async function GET(req: Request) {
     const location = searchParams.get("location") || "";
     const skip = parseInt(searchParams.get("skip") || "0");
     const limit = parseInt(searchParams.get("limit") || "10");
-    const eventType = searchParams.get("eventType") || "CLUB";
+    
+    const cacheKey = `events:${searchQuery}:${location}:${skip}:${limit}`;
+    console.log('Checking cache for key:', cacheKey);
 
-    // If this is a location suggestion request
-    if (searchParams.get("type") === "location-suggestions") {
-      if (!location) {
-        return NextResponse.json({ suggestions: [] });
-      }
-
-      const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-        location
-      )}.json?access_token=${MAPBOX_API_KEY}&country=GB&types=place,locality`;
-
-      const response = await fetch(mapboxUrl);
-      const data = await response.json();
-
-      const suggestions = data.features?.map((feature: any) => ({
-        name: feature.place_name,
-        coordinates: feature.center,
-      })) || [];
-
-      return NextResponse.json({ suggestions });
+    // Try to get cached results first
+    const cachedData = await redis.get<CachedData>(cacheKey);
+    if (cachedData) {
+      console.log('🎯 Cache HIT! Returning cached data for:', cacheKey);
+      return NextResponse.json({
+        ...cachedData,
+        fromCache: true
+      });
     }
 
-    // Otherwise, this is an event search request
+    console.log('❌ Cache MISS! Fetching fresh data for:', cacheKey);
+
+    // If no cache, fetch from API
     const params = {
       keywords: searchQuery.replace(/\s+/g, '+'),
       location: location,
-      max_events: (skip + limit).toString() // Request enough events to cover pagination
+      max_events: (skip + limit).toString()
     };
 
-    console.log('Fetching events from custom API:', params);
-
-    const response = await axios.get(`${EVENTS_API_URL}/events/`, {
+    const response = await axios.get(`${process.env.EVENTS_API_URL}/events/`, {
       params,
       headers: {
         'Accept': 'application/json',
@@ -52,25 +54,34 @@ export async function GET(req: Request) {
     });
 
     const allEvents = response.data || [];
+    const eventsWithPlatform = allEvents.map((event: any) => ({
+      ...event,
+      ...(event.platform && { platform: event.platform })
+    }));
     
-    // Handle pagination
-    const paginatedEvents = allEvents.slice(skip, skip + limit);
-    const totalEvents = allEvents.length;
+    const paginatedEvents = eventsWithPlatform.slice(skip, skip + limit);
+    const totalEvents = eventsWithPlatform.length;
     const hasMore = skip + limit < totalEvents;
 
-    return NextResponse.json({
+    const responseData: CachedData = {
       events: paginatedEvents,
       hasMore,
       total: totalEvents
+    };
+
+    // Cache the results
+    await redis.set(cacheKey, responseData, { ex: 300 }); // Cache for 5 minutes
+    console.log('✅ Cached new data for:', cacheKey);
+
+    return NextResponse.json({
+      ...responseData,
+      fromCache: false
     });
 
   } catch (error: any) {
-    console.error("Error:", error.message);
+    console.error("Error:", error);
     return NextResponse.json(
-      { 
-        message: "Error fetching data",
-        details: error.message
-      },
+      { message: "Error fetching data", details: error.message },
       { status: error.response?.status || 500 }
     );
   }

@@ -12,7 +12,7 @@ interface EventDetailsPageProps {
 
 async function getEvent(platform: string, eventId: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/events/${platform}/${eventId}`, {
+    const response = await fetch(`${process.env.EVENTS_API_URL}/events/${platform}/${eventId}`, {
       next: { revalidate: 60 },
     });
 

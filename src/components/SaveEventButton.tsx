@@ -5,9 +5,12 @@ import { BookmarkIcon } from "@heroicons/react/24/outline";
 import { BookmarkIcon as BookmarkSolidIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Event } from "@prisma/client";
+import { useQueryClient } from '@tanstack/react-query';
 
 interface SaveEventButtonProps {
   eventId: string;
+  eventData?: Partial<Event>;
   initialSaved?: boolean;
   className?: string;
   iconClassName?: string;
@@ -15,6 +18,7 @@ interface SaveEventButtonProps {
 
 const SaveEventButton = ({ 
   eventId, 
+  eventData,
   initialSaved = false,
   className = "",
   iconClassName = "w-5 h-5"
@@ -23,9 +27,9 @@ const SaveEventButton = ({
   const [isLoading, setIsLoading] = useState(false);
   const { data: session } = useSession();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Check if event is saved
     const checkSavedStatus = async () => {
       if (!session?.user?.email) return;
       
@@ -56,12 +60,15 @@ const SaveEventButton = ({
         },
         body: JSON.stringify({
           eventId,
+          eventData,
           action: isSaved ? 'unsave' : 'save',
         }),
       });
 
       if (response.ok) {
         setIsSaved(!isSaved);
+        // Invalidate and refetch savedEvents query
+        queryClient.invalidateQueries({ queryKey: ['savedEvents'] });
       }
     } catch (error) {
       console.error('Error saving event:', error);

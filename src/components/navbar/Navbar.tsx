@@ -46,7 +46,7 @@ export default function Navbar() {
       <nav className="mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
-          <Link href="/" className="flex-shrink-0">
+          <Link href="/" className="flex-shrink-0 mr-3">
             <span className="text-xl font-black text-blue-600">FINDMYRAVE</span>
           </Link>
 

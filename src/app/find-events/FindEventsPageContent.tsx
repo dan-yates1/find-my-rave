@@ -38,10 +38,12 @@ const FindEventsPageContent = () => {
     customDate: '',
     sortBy: 'date',
   });
-  const [events, setEvents] = useState<ExtendedEvent[]>([]);
-  const [page, setPage] = useState(1);
+  const [allEvents, setAllEvents] = useState<ExtendedEvent[]>([]);
+  const [displayedEvents, setDisplayedEvents] = useState<ExtendedEvent[]>([]);
+  const [hasMoreLocal, setHasMoreLocal] = useState(false);
+  const eventsPerPage = 12;
 
-  // Add this effect to update queries when URL params change
+  // Update queries when URL params change
   useEffect(() => {
     const newEventQuery = searchParams.get("event") || "";
     const newLocationQuery = searchParams.get("location") || "";
@@ -49,19 +51,20 @@ const FindEventsPageContent = () => {
     if (newEventQuery !== eventQuery || newLocationQuery !== locationQuery) {
       setEventQuery(newEventQuery);
       setLocationQuery(newLocationQuery);
-      setEvents([]); // Clear existing events
-      setPage(1); // Reset to first page
+      setAllEvents([]); // Clear existing events
+      setDisplayedEvents([]); // Clear displayed events
+      setHasMoreLocal(false); // Reset has more local
     }
   }, [searchParams, eventQuery, locationQuery]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['events', eventQuery, locationQuery, filters, page],
+    queryKey: ['events', eventQuery, locationQuery, filters],
     queryFn: async () => {
       const params = new URLSearchParams({
         event: eventQuery,
         location: locationQuery,
-        skip: ((page - 1) * 12).toString(),
-        limit: '12',
+        skip: "0",
+        limit: "36",
         ...(filters.platform !== 'all' && { platform: filters.platform }),
       });
 
@@ -77,19 +80,23 @@ const FindEventsPageContent = () => {
     },
     gcTime: 1000 * 60 * 30,
     staleTime: 1000 * 60 * 5,
-    enabled: Boolean(eventQuery || locationQuery),
   });
 
-  // Update events based on page
+  // Update events when data changes
   useEffect(() => {
     if (data?.events) {
-      if (page === 1) {
-        setEvents(data.events);
-      } else {
-        setEvents(prev => [...prev, ...data.events]);
-      }
+      setAllEvents(data.events);
+      setDisplayedEvents(data.events.slice(0, eventsPerPage));
+      setHasMoreLocal(data.events.length > eventsPerPage);
     }
-  }, [data, page]);
+  }, [data]);
+
+  // Handle "Show More" click
+  const handleShowMore = () => {
+    const nextEvents = allEvents.slice(0, displayedEvents.length + eventsPerPage);
+    setDisplayedEvents(nextEvents);
+    setHasMoreLocal(nextEvents.length < allEvents.length);
+  };
 
   const handleFilterChange = (key: keyof Filters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -142,8 +149,8 @@ const FindEventsPageContent = () => {
             Array.from({ length: 12 }).map((_, i) => (
               <SkeletonEventCard key={i} />
             ))
-          ) : events.length > 0 ? (
-            events.map((event) => (
+          ) : displayedEvents.length > 0 ? (
+            displayedEvents.map((event) => (
               <div 
                 key={event.id}
                 className="h-full"
@@ -167,14 +174,13 @@ const FindEventsPageContent = () => {
         </div>
 
         {/* Show More Button */}
-        {data?.hasMore && events.length > 0 && (
+        {hasMoreLocal && (
           <div className="flex justify-center mt-8">
             <button
-              onClick={() => setPage(prev => prev + 1)}
-              disabled={isLoading}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              onClick={handleShowMore}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              {isLoading ? 'Loading...' : 'Show More Events'}
+              Show More Events
             </button>
           </div>
         )}

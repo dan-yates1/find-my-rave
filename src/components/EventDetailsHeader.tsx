@@ -2,7 +2,7 @@
 
 import { Event } from "@prisma/client";
 import Image from "next/image";
-import { CalendarIcon, MapPinIcon, ClockIcon } from "@heroicons/react/24/outline";
+import { CalendarIcon, MapPinIcon, ClockIcon, CameraIcon } from "@heroicons/react/24/outline";
 import SaveEventButton from "./SaveEventButton";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
@@ -15,25 +15,31 @@ interface EventDetailsHeaderProps {
 const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
   const { data: session } = useSession();
   const router = useRouter();
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <div className="relative">
       {/* Event Image */}
-      <div className="relative w-full h-[400px]">
+      <div 
+        className="relative w-full h-[400px]"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <Image
           src={event.imageUrl || '/event-placeholder.jpg'}
           alt={event.title}
           fill
           className="object-cover"
+            
           priority
         />
-        {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        
         
         {/* Save Button - Positioned in top right */}
         <div className="absolute bottom-4 right-4 z-10">
           <SaveEventButton 
             eventId={event.id}
+            eventData={event}
             className="bg-white/10 backdrop-blur-sm hover:bg-white/20 border border-white/30 rounded-full p-2.5 transition-all duration-200"
             iconClassName="w-6 h-6 text-white"
           />
@@ -77,4 +83,4 @@ const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
   );
 };
 
-export default EventDetailsHeader; 
+export default EventDetailsHeader;

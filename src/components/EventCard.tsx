@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Event } from "@prisma/client";
 import Image from "next/image";
 import {
@@ -16,7 +16,7 @@ import { format } from "date-fns";
 
 interface EventCardProps {
   event: Event & {
-    platform: string;
+    platform?: string;
   };
   onHover?: (id: string | null) => void;
 }
@@ -25,59 +25,69 @@ export default function EventCard({
   event,
   onHover = () => {},
 }: EventCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
   const router = useRouter();
 
-  // Add null checks for dates
-  const formattedDate = event.startDate
-    ? format(new Date(event.startDate), "EEE, MMM d")
-    : "";
-  const formattedTime = event.startDate
-    ? format(new Date(event.startDate), "h:mm a")
-    : "";
+  const formattedDate = event?.startDate
+    ? format(new Date(event.startDate), 'EEE, MMM d, yyyy')
+    : 'Date TBA';
 
-  // Add null check for location
-  const formattedLocation = event.location ? event.location.split(",")[0] : "";
+  const formattedTime = event?.startDate
+    ? format(new Date(event.startDate), 'h:mm a')
+    : 'Time TBA';
+
+  const formattedLocation = event?.location || 'Location TBA';
+
+  if (!event?.id) {
+    return null;
+  }
 
   return (
-    <Link
-      href={`/events/${event.platform}/${event.id}`}
-      className="block h-full"
-      onMouseEnter={() => onHover?.(event.id)}
-      onMouseLeave={() => onHover?.(null)}
-    >
-      <div className="flex flex-col h-full bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-200">
-        {/* Image Container - Fixed aspect ratio */}
-        <div className="relative w-full aspect-[16/9] overflow-hidden rounded-t-xl">
+    <Link href={`/events/${event.platform}/${event.id}`}>
+      <div 
+        className="h-full bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="relative aspect-[16/9]">
           <Image
-            src={event.imageUrl || "/event-placeholder2.jpg"}
-            alt={event.title || "Event"}
+            src={event.imageUrl || '/event-placeholder.jpg'}
+            alt={event.title}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-200"
+            className="object-cover"
           />
-          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div 
+            className={`absolute top-2 right-2 transition-opacity duration-200 ${
+              isHovered ? 'opacity-100' : 'opacity-0'
+            }`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
             <SaveEventButton
               eventId={event.id}
+              eventData={event}
               className="bg-white/90 hover:bg-white backdrop-blur-sm rounded-full p-2 transition-all duration-200 shadow-sm"
               iconClassName="w-5 h-5"
             />
           </div>
-          <div className="absolute top-2 left-2">
+          <div className="absolute bottom-2 left-2">
             <span
-              className={`text-xs px-2 py-1 rounded-full ${
-                event.platform === "skiddle"
-                  ? "bg-blue-100 text-blue-800"
-                  : "bg-green-100 text-green-800"
+              className={`inline-block px-2 py-1 text-xs font-medium text-white bg-black/50 backdrop-blur-sm rounded-full
+                ${event.platform === 'skiddle' ? 'bg-purple-500/80' :
+                  event.platform === 'eventbrite' ? 'bg-orange-500/80' :
+                    'bg-blue-500/80'
               }`}
             >
-              {event.platform}
+              {event.platform || 'Unknown'}
             </span>
           </div>
         </div>
 
-        {/* Content Container - Flex grow to fill remaining space */}
         <div className="flex flex-col flex-grow p-4">
           <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-            {event.title}
+            {event.title || 'Untitled Event'}
           </h3>
 
           <div className="mt-auto pt-2 border-t border-gray-100">

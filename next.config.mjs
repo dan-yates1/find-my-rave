@@ -57,6 +57,8 @@ const nextConfig = {
         pathname: "/**",
       },
     ],
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60,
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -85,6 +87,7 @@ const nextConfig = {
     return config;
   },
   staticPageGenerationTimeout: 1000,
+  compress: true,
 };
 
 export default nextConfig;

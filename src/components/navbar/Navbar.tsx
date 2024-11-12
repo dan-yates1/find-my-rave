@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
@@ -8,6 +8,7 @@ import { Bars3Icon, XMarkIcon, UserCircleIcon, UserIcon } from "@heroicons/react
 import SearchBar from "./SearchBar";
 import { useRouter } from "next/navigation";
 import MobileNav from "./MobileNav";
+import { cn } from "@/lib/utils";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -16,7 +17,7 @@ export default function Navbar() {
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleSearch = ({
+  const handleSearch = useCallback(({
     input,
     location,
   }: {
@@ -28,6 +29,13 @@ export default function Navbar() {
       location: location,
     });
     router.push(`/find-events?${searchParams.toString()}`);
+  }, [router]);
+
+  const handleProfileClick = () => setShowProfileMenu(!showProfileMenu);
+
+  const handleSignOut = async () => {
+    setShowProfileMenu(false);
+    await signOut();
   };
 
   useEffect(() => {
@@ -40,6 +48,44 @@ export default function Navbar() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const ProfileMenu = () => (
+    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-50">
+      {session?.user ? (
+        <>
+          <div className="px-4 py-2 border-b">
+            <p className="text-sm font-medium text-gray-900">{session.user.name || 'User'}</p>
+            <p className="text-sm text-gray-500">{session.user.email || ''}</p>
+          </div>
+          <Link
+            href="/profile"
+            className={cn(
+              "block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100",
+              "flex items-center space-x-2"
+            )}
+            onClick={() => setShowProfileMenu(false)}
+          >
+            <UserCircleIcon className="w-4 h-4" />
+            <span>My Profile</span>
+          </Link>
+          <button
+            onClick={handleSignOut}
+            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+          >
+            Sign Out
+          </button>
+        </>
+      ) : (
+        <Link
+          href="/login-register"
+          className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100"
+          onClick={() => setShowProfileMenu(false)}
+        >
+          Sign In/Register
+        </Link>
+      )}
+    </div>
+  );
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b py-1 border-gray-200">
@@ -77,7 +123,7 @@ export default function Navbar() {
               </Link> */}
               <div className="relative" ref={dropdownRef}>
                 <button
-                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  onClick={handleProfileClick}
                   className="flex items-center space-x-2 text-blue-600 hover:text-blue-700"
                 >
                   {session?.user?.image ? (
@@ -96,43 +142,7 @@ export default function Navbar() {
                 </button>
                 
                 {showProfileMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-50">
-                    {session?.user ? (
-                      <>
-                        <div className="px-4 py-2 border-b">
-                          <p className="text-sm font-medium text-gray-900">{session.user.name || 'User'}</p>
-                          <p className="text-sm text-gray-500">{session.user.email || ''}</p>
-                        </div>
-                        <Link
-                          href="/profile"
-                          className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100"
-                          onClick={() => setShowProfileMenu(false)}
-                        >
-                          <div className="flex items-center space-x-2">
-                            <UserCircleIcon className="w-4 h-4" />
-                            <span>My Profile</span>
-                          </div>
-                        </Link>
-                        <button
-                          onClick={() => {
-                            setShowProfileMenu(false);
-                            signOut();
-                          }}
-                          className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                        >
-                          Sign Out
-                        </button>
-                      </>
-                    ) : (
-                      <Link
-                        href="/login-register"
-                        className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100"
-                        onClick={() => setShowProfileMenu(false)}
-                      >
-                        Sign In/Register
-                      </Link>
-                    )}
-                  </div>
+                  <ProfileMenu />
                 )}
               </div>
             </div>

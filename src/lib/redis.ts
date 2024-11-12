@@ -1,17 +1,21 @@
 import { Redis } from '@upstash/redis';
 
-if (!process.env.UPSTASH_REDIS_REST_URL) {
-  throw new Error('UPSTASH_REDIS_REST_URL is not defined');
-}
+const getRedisClient = () => {
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    throw new Error('Redis configuration missing');
+  }
 
-if (!process.env.UPSTASH_REDIS_REST_TOKEN) {
-  throw new Error('UPSTASH_REDIS_REST_TOKEN is not defined');
-}
+  return new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    retry: {
+      retries: 3,
+      backoff: (retryCount) => Math.min(Math.exp(retryCount) * 50, 1000),
+    },
+  });
+};
 
-export const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
+export const redis = getRedisClient();
 
 // Test the connection
 redis.ping().then(() => {

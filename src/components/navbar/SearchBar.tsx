@@ -2,13 +2,21 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import { MapPinIcon } from "@heroicons/react/24/solid";
+import { MapPinIcon, ClockIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { useDebounce } from "@/hooks/useDebounce";
 
 interface SearchBarProps {
   onSearch: (params: { input: string; location: string }) => void;
   initialInput?: string;
   initialLocation?: string;
+}
+
+const MAX_RECENT_SEARCHES = 5;
+
+interface RecentSearch {
+  input: string;
+  location: string;
+  timestamp: number;
 }
 
 export default function SearchBar({
@@ -20,9 +28,73 @@ export default function SearchBar({
   const [location, setLocation] = useState(initialLocation);
   const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showRecentSearches, setShowRecentSearches] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const debouncedLocation = useDebounce(location, 300);
+  const recentSearchesRef = useRef<HTMLDivElement>(null);
+
+  // Load recent searches from localStorage
+  useEffect(() => {
+    const savedSearches = localStorage.getItem('recentSearches');
+    if (savedSearches) {
+      setRecentSearches(JSON.parse(savedSearches));
+    }
+  }, []);
+
+  // Save recent search
+  const saveRecentSearch = (input: string, location: string) => {
+    const newSearch: RecentSearch = {
+      input,
+      location,
+      timestamp: Date.now(),
+    };
+
+    setRecentSearches(prevSearches => {
+      const filteredSearches = prevSearches.filter(
+        search => !(search.input === input && search.location === location)
+      );
+      const updatedSearches = [newSearch, ...filteredSearches].slice(0, MAX_RECENT_SEARCHES);
+      localStorage.setItem('recentSearches', JSON.stringify(updatedSearches));
+      return updatedSearches;
+    });
+  };
+
+  // Clear specific recent search
+  const clearRecentSearch = (index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRecentSearches(prevSearches => {
+      const updatedSearches = prevSearches.filter((_, i) => i !== index);
+      localStorage.setItem('recentSearches', JSON.stringify(updatedSearches));
+      return updatedSearches;
+    });
+  };
+
+  // Handle recent search click
+  const handleRecentSearchClick = (recentSearch: RecentSearch) => {
+    setInput(recentSearch.input);
+    setLocation(recentSearch.location);
+    onSearch({
+      input: recentSearch.input,
+      location: recentSearch.location,
+    });
+    setShowRecentSearches(false);
+  };
+
+  // Existing handleSubmit modification
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim() || location.trim()) {
+      saveRecentSearch(input, location);
+      onSearch({ input, location: location.split(',')[0] });
+    }
+    setShowSuggestions(false);
+    setShowRecentSearches(false);
+    setIsFocused(false);
+    setLocationSuggestions([]);
+  };
 
   const handleCurrentLocation = async () => {
     if (navigator.geolocation) {
@@ -94,13 +166,21 @@ export default function SearchBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSearch({ input, location: location.split(',')[0] });
-    setShowSuggestions(false);
-    setIsFocused(false);
-    setLocationSuggestions([]);
-  };
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchInputRef.current &&
+        recentSearchesRef.current &&
+        !searchInputRef.current.contains(event.target as Node) &&
+        !recentSearchesRef.current.contains(event.target as Node)
+      ) {
+        setShowRecentSearches(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleLocationSelect = (locationName: string) => {
     setLocation(locationName.split(',')[0]);
@@ -111,21 +191,58 @@ export default function SearchBar({
 
   return (
     <form onSubmit={handleSubmit} className="w-full px-8">
-      <div className="flex h-12 bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-shadow duration-200">
+      <div className="relative flex h-12 bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-shadow duration-200">
         <div className="flex items-center pl-6">
           <MagnifyingGlassIcon className="h-5 w-5 stroke-2 text-gray-400" />
         </div>
 
-        <div className="flex-1 flex items-center pl-3">
+        <div className="flex-1 flex items-center pl-3 relative">
           <input
+            ref={searchInputRef}
             type="text"
             placeholder="Search events..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onFocus={() => setShowRecentSearches(true)}
             className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-500"
           />
+          
+          {/* Recent Searches Dropdown */}
+          {showRecentSearches && recentSearches.length > 0 && (
+            <div
+              ref={recentSearchesRef}
+              className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+            >
+              <div className="p-2 border-b border-gray-200">
+                <p className="text-sm text-gray-500">Recent Searches</p>
+              </div>
+              {recentSearches.map((search, index) => (
+                <div
+                  key={index}
+                  onClick={() => handleRecentSearchClick(search)}
+                  className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 hover:rounded-lg cursor-pointer"
+                >
+                  <div className="flex items-center space-x-2">
+                    <ClockIcon className="h-4 w-4 text-gray-400" />
+                    <div>
+                      <p className="text-sm text-gray-900">{search.input || search.location}</p>
+                      {search.input && search.location && (
+                        <p className="text-xs text-gray-500">{search.location}</p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => clearRecentSearch(index, e)}
+                    className="p-1 hover:bg-gray-100 rounded-full"
+                  >
+                    <XMarkIcon className="h-4 w-4 text-gray-400" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        
+
         <div className="h-full flex items-center px-4">
           <div className="h-6 w-[1px] bg-gray-300"></div>
         </div>

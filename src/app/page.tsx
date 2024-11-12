@@ -40,7 +40,7 @@ export default function Home() {
               </Link>
               <Link href="/create-event">
                 <button className="w-full sm:w-auto px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white rounded-full font-medium hover-effect">
-                  Create an Event
+                  Submit an Event
                 </button>
               </Link>
             </div>

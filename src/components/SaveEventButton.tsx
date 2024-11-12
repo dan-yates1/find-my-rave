@@ -16,80 +16,100 @@ interface SaveEventButtonProps {
   iconClassName?: string;
 }
 
-const SaveEventButton = ({ 
-  eventId, 
+const SaveEventButton = ({
+  eventId,
   eventData,
   initialSaved = false,
   className = "",
-  iconClassName = "w-5 h-5"
+  iconClassName = "w-6 h-6",
 }: SaveEventButtonProps) => {
-  const [isSaved, setIsSaved] = useState(initialSaved);
-  const [isLoading, setIsLoading] = useState(false);
   const { data: session } = useSession();
   const router = useRouter();
+  const [isSaved, setIsSaved] = useState(initialSaved);
+  const [showPrompt, setShowPrompt] = useState(false);
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const checkSavedStatus = async () => {
-      if (!session?.user?.email) return;
-      
-      try {
-        const response = await fetch('/api/user/check-saved-events');
-        const data = await response.json();
-        setIsSaved(data.savedEventIds?.includes(eventId) || false);
-      } catch (error) {
-        console.error('Error checking saved status:', error);
-      }
-    };
+  const handleSave = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-    checkSavedStatus();
-  }, [session?.user?.email, eventId]);
-
-  const handleSave = async () => {
     if (!session) {
-      router.push('/login-register');
+      setShowPrompt(true);
       return;
     }
 
-    setIsLoading(true);
     try {
-      const response = await fetch('/api/user/save-event', {
-        method: 'POST',
+      const response = await fetch("/api/user/save-event", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           eventId,
+          action: isSaved ? "unsave" : "save",
           eventData,
-          action: isSaved ? 'unsave' : 'save',
         }),
       });
 
       if (response.ok) {
         setIsSaved(!isSaved);
-        // Invalidate and refetch savedEvents query
+        // Invalidate the saved events query to trigger a refetch
         queryClient.invalidateQueries({ queryKey: ['savedEvents'] });
       }
     } catch (error) {
-      console.error('Error saving event:', error);
-    } finally {
-      setIsLoading(false);
+      console.error("Error saving event:", error);
     }
   };
 
   return (
-    <button
-      onClick={handleSave}
-      disabled={isLoading}
-      className={`${className} disabled:opacity-50`}
-      aria-label={isSaved ? "Unsave event" : "Save event"}
-    >
-      {isSaved ? (
-        <BookmarkSolidIcon className={iconClassName} />
-      ) : (
-        <BookmarkIcon className={iconClassName} />
+    <>
+      <button
+        onClick={handleSave}
+        className={`relative ${className}`}
+        aria-label={isSaved ? "Unsave event" : "Save event"}
+      >
+        {isSaved ? (
+          <BookmarkSolidIcon className={`text-blue-600 ${iconClassName}`} />
+        ) : (
+          <BookmarkIcon className={`text-gray-600 hover:text-blue-600 ${iconClassName}`} />
+        )}
+      </button>
+
+      {/* Login Prompt Modal */}
+      {showPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-sm mx-4 relative">
+            <button
+              onClick={() => setShowPrompt(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+            >
+              ×
+            </button>
+            <h3 className="text-xl font-semibold mb-4">Create an Account</h3>
+            <p className="text-gray-600 mb-6">
+              To save events and access more features, please create an account or sign in.
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => {
+                  setShowPrompt(false);
+                  router.push('/login-register');
+                }}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Sign In / Register
+              </button>
+              <button
+                onClick={() => setShowPrompt(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
-    </button>
+    </>
   );
 };
 

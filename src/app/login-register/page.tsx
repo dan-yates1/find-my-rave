@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from 'next/image';
 
 export default function Component() {
   const { data: session } = useSession();
@@ -96,7 +97,7 @@ export default function Component() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cover bg-center">
+    <main className="fixed inset-0 overflow-hidden">
       <video
         autoPlay
         loop
@@ -110,7 +111,7 @@ export default function Component() {
         <source src="/rave-video.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full h-full flex items-center justify-center px-4">
         <Card className="w-full max-w-md bg-white">
           <CardContent className="p-6">
             <h1 className="text-2xl font-black text-center text-blue-600 mb-6">
@@ -135,7 +136,7 @@ export default function Component() {
                 "Connecting..."
               ) : (
                 <>
-                  <img src="/google.svg" alt="Google" className="w-5 h-5" />
+                  <Image src="/google.svg" alt="Google" width={20} height={20} />
                   Continue with Google
                 </>
               )}
@@ -225,6 +226,6 @@ export default function Component() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </main>
   );
 }

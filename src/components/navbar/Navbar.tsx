@@ -108,23 +108,23 @@ export default function Navbar() {
 
           {/* Navigation and Profile - Desktop */}
           <div className="hidden lg:flex lg:items-center flex-shrink-0">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
               <Link
                 href="/find-events"
-                className="text-[#39364F] font-medium hover:bg-gray-100 rounded-full px-4 py-2 transition-colors"
+                className="text-[#39364F] font-medium hover:bg-gray-100 rounded-full px-4 py-2 transition-colors -mr-2"
               >
                 Find Events
               </Link>
-              {/* <Link
+              <Link
                 href="/create-event"
                 className="text-[#39364F] font-medium hover:bg-gray-100 rounded-full px-4 py-2 transition-colors"
               >
                 Create Events
-              </Link> */}
+              </Link>
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={handleProfileClick}
-                  className="flex items-center space-x-2 text-blue-600 hover:text-blue-700"
+                  className="flex items-center space-x-2 ml-2 text-blue-600 hover:text-blue-700"
                 >
                   {session?.user?.image ? (
                     <Image

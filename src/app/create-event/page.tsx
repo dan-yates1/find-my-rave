@@ -1,34 +1,121 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { createEventSchema, CreateEventFormData } from "@/lib/validation";
+import { createEventSchema, CreateEventFormData, EVENT_TYPES } from "@/lib/validation";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { getLatLon } from "@/lib/utils";
+import { AlertCircle, CheckCircle2, ImageIcon, CalendarIcon, MapPinIcon, LinkIcon } from "lucide-react";
 
 const CreateEventPage: React.FC = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const suggestionsRef = useRef<HTMLUListElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [hasFocus, setHasFocus] = useState(false);
+  const [notification, setNotification] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
+    watch,
   } = useForm<CreateEventFormData>({
     resolver: zodResolver(createEventSchema),
   });
 
+  const location = watch("location");
+  const imageFile = watch("image");
+
+  // Handle image preview
+  useEffect(() => {
+    if (imageFile && imageFile.length > 0) {
+      const file = imageFile[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  }, [imageFile]);
+
+  useEffect(() => {
+    const fetchLocationSuggestions = async () => {
+      if (location && location.length > 2) {
+        try {
+          const response = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+              location
+            )}.json?access_token=${
+              process.env.NEXT_PUBLIC_MAPBOX_API_KEY
+            }&types=place,address&limit=5`
+          );
+          const data = await response.json();
+          const suggestions = data.features.map(
+            (feature: any) => feature.place_name
+          );
+          setLocationSuggestions(suggestions);
+        } catch (error) {
+          console.error("Error fetching location suggestions:", error);
+        }
+      } else {
+        setLocationSuggestions([]);
+      }
+    };
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(fetchLocationSuggestions, 300);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [location]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node)
+      ) {
+        setLocationSuggestions([]);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const onSubmit = async (data: CreateEventFormData) => {
     setLoading(true);
+    try {
+      const result = await getLatLon(data.location);
+      const latitude = result?.lat ?? 0;
+      const longitude = result?.lon ?? 0;
+      data.latitude = latitude;
+      data.longitude = longitude;
 
-    let imageUrl = "";
+      let imageUrl = "";
 
-    // Handle image upload if provided
-    if (data.image && data.image.length > 0) {
-      const formData = new FormData();
-      formData.append("file", data.image[0]);
+      if (data.image && data.image.length > 0) {
+        const formData = new FormData();
+        formData.append("file", data.image[0]);
 
-      try {
         const uploadResponse = await fetch("/api/upload-image", {
           method: "POST",
           body: formData,
@@ -36,14 +123,8 @@ const CreateEventPage: React.FC = () => {
 
         const uploadResult = await uploadResponse.json();
         imageUrl = uploadResult.imageUrl;
-      } catch (error) {
-        console.error("Failed to upload image:", error);
-        setLoading(false);
-        return;
       }
-    }
 
-    try {
       const response = await fetch("/api/events", {
         method: "POST",
         headers: {
@@ -52,217 +133,263 @@ const CreateEventPage: React.FC = () => {
         body: JSON.stringify({ ...data, imageUrl }),
       });
 
-      if (response.ok) {
-        router.push("/find-events");
-      } else {
-        console.error("Failed to create event");
+      if (!response.ok) {
+        throw new Error("Failed to create event");
       }
+
+      setNotification({
+        type: "success",
+        message: "Event created successfully!",
+      });
+      setTimeout(() => {
+        router.push("/find-events");
+      }, 2000);
     } catch (error) {
       console.error("An error occurred:", error);
+      setNotification({
+        type: "error",
+        message: "Failed to create event. Please try again.",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-10 px-4 border rounded-lg p-4 mt-10 mb-1">
-      <h1 className="text-3xl font-bold mb-8">Create a New Event</h1>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Title */}
-        <div>
-          <label
-            htmlFor="title"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Event Title
-          </label>
-          <input
-            id="title"
-            type="text"
-            {...register("title")}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-          />
-          {errors.title && (
-            <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
-          )}
-        </div>
+    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 py-12">
+      <div className="max-w-7xl mx-auto px-4">
+        {notification && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
+            <div className={`p-6 rounded-xl shadow-lg ${
+              notification.type === "success"
+                ? "bg-green-100 text-green-800"
+                : "bg-red-100 text-red-800"
+              } flex items-center space-x-3`}
+            >
+              {notification.type === "success" ? (
+                <CheckCircle2 className="h-6 w-6" />
+              ) : (
+                <AlertCircle className="h-6 w-6" />
+              )}
+              <span className="text-lg">{notification.message}</span>
+            </div>
+          </div>
+        )}
 
-        {/* Description */}
-        <div>
-          <label
-            htmlFor="description"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Description
-          </label>
-          <textarea
-            id="description"
-            {...register("description")}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-          />
-          {errors.description && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.description?.message}
-            </p>
-          )}
-        </div>
+        <div className="bg-white rounded-2xl shadow-sm p-8">
+          <h1 className="text-3xl font-bold mb-8">Create a New Event</h1>
+          
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+            {/* Image Upload Section */}
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Event Image
+              </label>
+              <div className="relative">
+                <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-300 px-6 py-10">
+                  <div className="text-center">
+                    {selectedImage ? (
+                      <img
+                        src={selectedImage}
+                        alt="Preview"
+                        className="mx-auto h-48 w-96 object-cover rounded-lg"
+                      />
+                    ) : (
+                      <ImageIcon
+                        className="mx-auto h-12 w-12 text-gray-400"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <div className="mt-4 flex flex-col items-center text-sm leading-6 text-gray-600">
+                      <label
+                        htmlFor="image"
+                        className="relative cursor-pointer rounded-md bg-white font-semibold text-primary hover:text-primary/80"
+                      >
+                        <span>Upload an image</span>
+                        <input
+                          id="image"
+                          type="file"
+                          className="sr-only"
+                          {...register("image")}
+                        />
+                      </label>
+                      <p className="text-xs leading-5 text-gray-600">
+                        PNG, JPG, GIF up to 10MB
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        {/* Start Date */}
-        <div>
-          <label
-            htmlFor="startDate"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Start Date
-          </label>
-          <input
-            id="startDate"
-            type="datetime-local"
-            {...register("startDate")}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-          />
-          {errors.startDate && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.startDate?.message}
-            </p>
-          )}
-        </div>
+            {/* Title & Description */}
+            <div className="grid grid-cols-1 gap-8">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Event Title
+                </label>
+                <Input
+                  {...register("title")}
+                  className="w-full"
+                  placeholder="Enter event title"
+                />
+                {errors.title && (
+                  <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+                )}
+              </div>
 
-        {/* End Date */}
-        <div>
-          <label
-            htmlFor="endDate"
-            className="block text-sm font-medium text-gray-700"
-          >
-            End Date
-          </label>
-          <input
-            id="endDate"
-            type="datetime-local"
-            {...register("endDate")}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-          />
-          {errors.endDate && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.endDate?.message}
-            </p>
-          )}
-        </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <Textarea
+                  {...register("description")}
+                  className="w-full min-h-[150px]"
+                  placeholder="Describe your event"
+                />
+                {errors.description && (
+                  <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+                )}
+              </div>
+            </div>
 
-        {/* Location */}
-        <div>
-          <label
-            htmlFor="location"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Location
-          </label>
-          <input
-            id="location"
-            type="text"
-            {...register("location")}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-          />
-          {errors.location && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.location?.message}
-            </p>
-          )}
-        </div>
+            {/* Date & Time */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Start Date & Time
+                </label>
+                <Input
+                  type="datetime-local"
+                  {...register("startDate")}
+                  className="w-full"
+                />
+                {errors.startDate && (
+                  <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
+                )}
+              </div>
 
-        {/* Latitude */}
-        <div>
-          <label
-            htmlFor="latitude"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Latitude (optional)
-          </label>
-          <input
-            id="latitude"
-            type="text"
-            {...register("latitude")}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-          />
-          {errors.latitude && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.latitude?.message}
-            </p>
-          )}
-        </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  End Date & Time
+                </label>
+                <Input
+                  type="datetime-local"
+                  {...register("endDate")}
+                  className="w-full"
+                />
+                {errors.endDate && (
+                  <p className="mt-1 text-sm text-red-600">{errors.endDate.message}</p>
+                )}
+              </div>
+            </div>
 
-        {/* Longitude */}
-        <div>
-          <label
-            htmlFor="longitude"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Longitude (optional)
-          </label>
-          <input
-            id="longitude"
-            type="text"
-            {...register("longitude")}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-          />
-          {errors.longitude && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.longitude?.message}
-            </p>
-          )}
-        </div>
+            {/* Location & Link */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Location
+                </label>
+                <Input
+                  {...register("location")}
+                  onFocus={() => setHasFocus(true)}
+                  className="w-full"
+                  placeholder="Enter event location"
+                />
+                {errors.location && (
+                  <p className="mt-1 text-sm text-red-600">{errors.location.message}</p>
+                )}
+                {hasFocus && locationSuggestions.length > 0 && (
+                  <ul
+                    ref={suggestionsRef}
+                    className="absolute z-10 w-full bg-white shadow-lg rounded-lg mt-1 border border-gray-200"
+                  >
+                    {locationSuggestions.map((suggestion, index) => (
+                      <li
+                        key={index}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          setValue("location", suggestion);
+                          setLocationSuggestions([]);
+                          setHasFocus(false);
+                        }}
+                      >
+                        {suggestion}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
-        {/* Link */}
-        <div>
-          <label
-            htmlFor="link"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Event Link
-          </label>
-          <input
-            id="link"
-            type="url"
-            {...register("link")}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-          />
-          {errors.link && (
-            <p className="text-red-500 text-sm mt-1">{errors.link?.message}</p>
-          )}
-        </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Event Link
+                </label>
+                <Input
+                  {...register("link")}
+                  className="w-full"
+                  placeholder="https://..."
+                />
+                {errors.link && (
+                  <p className="mt-1 text-sm text-red-600">{errors.link.message}</p>
+                )}
+              </div>
+            </div>
 
-        {/* Image Upload */}
-        <div>
-          <label
-            htmlFor="image"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Upload Image
-          </label>
-          <input
-            id="image"
-            type="file"
-            {...register("image")}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-          />
-          {errors.image && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.image.message as string}
-            </p>
-          )}
-        </div>
+            {/* Event Type & Price */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Event Type
+                </label>
+                <select
+                  {...register("eventType")}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500"
+                  defaultValue=""
+                >
+                  <option value="" disabled>Select event type</option>
+                  {EVENT_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </option>
+                  ))}
+                </select>
+                {errors.eventType && (
+                  <p className="mt-1 text-sm text-red-600">{errors.eventType.message}</p>
+                )}
+              </div>
 
-        {/* Submit Button */}
-        <div>
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={loading}
-          >
-            {loading ? "Creating..." : "Create Event"}
-          </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ticket Price (£)
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  {...register("price", { valueAsNumber: true })}
+                  className="w-full"
+                  placeholder="0.00"
+                />
+                {errors.price && (
+                  <p className="mt-1 text-sm text-red-600">{errors.price.message}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-center">
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-primary text-white px-8 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {loading ? "Creating..." : "Create Event"}
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

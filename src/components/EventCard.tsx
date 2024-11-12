@@ -1,68 +1,109 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Event } from "@prisma/client";
 import Image from "next/image";
-import { BookmarkIcon, MapIcon, TicketIcon } from "@heroicons/react/24/outline";
+import {
+  MapIcon,
+  ClockIcon,
+  CalendarIcon,
+  MapPinIcon,
+} from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
+import SaveEventButton from "./SaveEventButton";
+import Link from "next/link";
+import { format } from "date-fns";
 
 interface EventCardProps {
-  event: Event;
+  event: Event & {
+    platform?: string;
+  };
+  onHover?: (id: string | null) => void;
 }
 
-const EventCard = ({ event }: EventCardProps) => {
+export default function EventCard({
+  event,
+  onHover = () => {},
+}: EventCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
   const router = useRouter();
 
-  const handleCardClick = () => {
-    router.push(`/events/${event.slug}`);
-  };
+  const formattedDate = event?.startDate
+    ? format(new Date(event.startDate), 'EEE, MMM d, yyyy')
+    : 'Date TBA';
+
+  const formattedTime = event?.startDate
+    ? format(new Date(event.startDate), 'h:mm a')
+    : 'Time TBA';
+
+  const formattedLocation = event?.location || 'Location TBA';
+
+  if (!event?.id) {
+    return null;
+  }
 
   return (
-    <div
-      className="flex space-x-4 p-4 rounded-xl mb-6 hover:border hover:border-gray-300 hover:shadow-outline-lg transition-shadow duration-300 ease-in-out cursor-pointer"
-      onClick={handleCardClick}
-    >
-      {/* Event Image */}
-      <Image
-        src={event.imageUrl || "/rave-bg.jpg"}
-        width={200}
-        height={200}
-        alt={event.title}
-        className="w-52 h-28 rounded-lg object-cover"
-      />
+    <Link href={`/events/${event.platform}/${event.id}`}>
+      <div 
+        className="h-full bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="relative aspect-[16/9]">
+          <Image
+            src={event.imageUrl || '/event-placeholder.jpg'}
+            alt={event.title}
+            fill
+            className="object-cover"
+          />
+          <div 
+            className={`absolute top-2 right-2 transition-opacity duration-200 ${
+              isHovered ? 'opacity-100' : 'opacity-0'
+            }`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <SaveEventButton
+              eventId={event.id}
+              eventData={event}
+              className="bg-white/90 hover:bg-white backdrop-blur-sm rounded-full p-2 transition-all duration-200 shadow-sm"
+              iconClassName="w-5 h-5"
+            />
+          </div>
+          {/* <div className="absolute bottom-2 left-2">
+            <span
+              className={`inline-block px-2 py-1 text-xs font-medium text-white bg-black/50 backdrop-blur-sm rounded-full
+                ${event.platform === 'skiddle' ? 'bg-purple-500/80' :
+                  event.platform === 'eventbrite' ? 'bg-orange-500/80' :
+                    'bg-blue-500/80'
+              }`}
+            >
+              {event.platform || 'Unknown'}
+            </span>
+          </div> */}
+        </div>
 
-      {/* Event Details */}
-      <div className="flex-1">
-        <h3 className="text-lg font-semibold">{event.title}</h3>
-        <p className="text-gray-500">
-          {new Date(event.startDate).toLocaleString("en-GB", {
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </p>
-        <div className="flex items-center space-x-2 gap-5 text-blue-600">
-          <span className="flex items-center gap-1">
-            <MapIcon className="w-5 h-5 text-blue-600" />
-            {event.location}
-          </span>
-          <a href={event.link} className="flex items-center gap-1">
-            <TicketIcon className="w-5 h-5 text-blue-600" />
-            Tickets
-          </a>
+        <div className="flex flex-col flex-grow p-4">
+          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+            {event.title || 'Untitled Event'}
+          </h3>
+
+          <div className="mt-auto pt-2 border-t border-gray-100">
+            <div className="flex items-center text-gray-500 text-sm">
+              <CalendarIcon className="w-4 h-4 mr-1" />
+              <span>
+                {formattedDate} • {formattedTime}
+              </span>
+            </div>
+            <div className="flex items-center text-gray-500 text-sm mt-1">
+              <MapPinIcon className="w-4 h-4 mr-1" />
+              <span className="truncate">{formattedLocation}</span>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Bookmark Icon */}
-      <div className="ml-auto flex items-center">
-        <div className="p-2 rounded-full hover:bg-blue-100 transition-colors duration-300">
-          <BookmarkIcon className="h-5 w-5 text-blue-500 hover:text-blue-700" />
-        </div>
-      </div>
-    </div>
+    </Link>
   );
-};
-
-export default EventCard;
+}

@@ -1,64 +1,189 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import EventCard from "@/components/EventCard";
 import SkeletonEventCard from "@/components/SkeletonEventCard";
-import Map from "@/components/Map";
 import { capitalizeFirstLetter } from "@/lib/utils";
+import { FunnelIcon } from "@heroicons/react/24/outline";
+import { useQuery } from '@tanstack/react-query';
+import { Event } from "@prisma/client";
+
+// Extend the Event type to include platform
+interface ExtendedEvent extends Event {
+  platform: string;
+}
+
+interface Filters {
+  platform: string;
+  dateRange?: string;
+  priceRange?: string;
+  eventType?: string;
+  radius?: string;
+  customDate?: string;
+  sortBy?: 'date' | 'relevance';
+}
 
 const FindEventsPageContent = () => {
-  const [events, setEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true); // Add a loading state
   const searchParams = useSearchParams();
-  const eventQuery = searchParams.get("event") || "";
-  const locationQuery = searchParams.get("location") || "";
+  const [eventQuery, setEventQuery] = useState(searchParams.get("event") || "");
+  const [locationQuery, setLocationQuery] = useState(searchParams.get("location") || "");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<Filters>({
+    platform: 'all',
+    dateRange: 'all',
+    priceRange: 'all',
+    eventType: 'all',
+    radius: '30',
+    customDate: '',
+    sortBy: 'date',
+  });
+  const [allEvents, setAllEvents] = useState<ExtendedEvent[]>([]);
+  const [displayedEvents, setDisplayedEvents] = useState<ExtendedEvent[]>([]);
+  const [hasMoreLocal, setHasMoreLocal] = useState(false);
+  const eventsPerPage = 12;
 
+  // Update queries when URL params change
   useEffect(() => {
-    const fetchEvents = async () => {
-      setLoading(true); // Set loading to true before fetching
-      try {
-        const response = await fetch(
-          `/api/events/search?event=${eventQuery}&location=${locationQuery}`
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setEvents(data);
-        } else {
-          console.error("Failed to fetch events");
-        }
-      } catch (error) {
-        console.error("Error fetching events:", error);
-      } finally {
-        setLoading(false); // Set loading to false after fetching
+    const newEventQuery = searchParams.get("event") || "";
+    const newLocationQuery = searchParams.get("location") || "";
+    
+    if (newEventQuery !== eventQuery || newLocationQuery !== locationQuery) {
+      setEventQuery(newEventQuery);
+      setLocationQuery(newLocationQuery);
+      setAllEvents([]); // Clear existing events
+      setDisplayedEvents([]); // Clear displayed events
+      setHasMoreLocal(false); // Reset has more local
+    }
+  }, [searchParams, eventQuery, locationQuery]);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['events', eventQuery, locationQuery, filters],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        event: eventQuery,
+        location: locationQuery,
+        skip: "0",
+        limit: "36",
+        ...(filters.platform !== 'all' && { platform: filters.platform }),
+      });
+
+      const response = await fetch(`/api/events/search?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch events');
       }
-    };
+      const data = await response.json();
+      return {
+        ...data,
+        events: data.events as ExtendedEvent[]
+      };
+    },
+    gcTime: 1000 * 60 * 30,
+    staleTime: 1000 * 60 * 5,
+  });
 
-    fetchEvents();
-  }, [eventQuery, locationQuery]);
+  // Update events when data changes
+  useEffect(() => {
+    if (data?.events) {
+      setAllEvents(data.events);
+      setDisplayedEvents(data.events.slice(0, eventsPerPage));
+      setHasMoreLocal(data.events.length > eventsPerPage);
+    }
+  }, [data]);
 
-  const titleText =
-    eventQuery || locationQuery
-      ? `${capitalizeFirstLetter(eventQuery || "All")} events${
-          locationQuery ? `, ${locationQuery}` : ""
-        }`
-      : "All events";
+  // Handle "Show More" click
+  const handleShowMore = () => {
+    const nextEvents = allEvents.slice(0, displayedEvents.length + eventsPerPage);
+    setDisplayedEvents(nextEvents);
+    setHasMoreLocal(nextEvents.length < allEvents.length);
+  };
+
+  const handleFilterChange = (key: keyof Filters, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const titleText = eventQuery || locationQuery
+    ? `${capitalizeFirstLetter(eventQuery || "All")} events${locationQuery ? ` in ${locationQuery}` : ""}`
+    : "All events";
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen">
-      {/* Event List */}
-      <div className="lg:w-1/2 overflow-y-auto p-6 space-y-4 w-full">
-        <h2 className="text-3xl font-bold mb-4">{titleText}</h2>
-        {loading
-          ? Array(6)
-              .fill(0)
-              .map((_, index) => <SkeletonEventCard key={index} />) // Render 6 skeleton cards
-          : events.map((event) => <EventCard key={event.id} event={event} />)}
+    <div className="min-h-screen bg-gray-50 pb-12">
+      {/* Filters Section */}
+      <div className="border-b bg-white sticky top-[65px] z-40">
+        <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-gray-900">{titleText}</h1>
+            <div className="flex items-center gap-4">
+              <select
+                value={filters.sortBy}
+                onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                className="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="date">Sort by Date</option>
+                <option value="relevance">Sort by Relevance</option>
+              </select>
+              
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+              >
+                <FunnelIcon className="w-5 h-5" />
+                <span>Filters</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Filters Panel */}
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 py-4">
+              {/* Add your filter components here */}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Map Area - Only render on large screens */}
-      <div className="hidden lg:block lg:w-1/2 p-4">
-        <Map events={events} />
+      {/* Events List */}
+      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
+          {isLoading ? (
+            Array.from({ length: 12 }).map((_, i) => (
+              <SkeletonEventCard key={i} />
+            ))
+          ) : displayedEvents.length > 0 ? (
+            displayedEvents.map((event) => (
+              <div 
+                key={event.id}
+                className="h-full"
+              >
+                <EventCard
+                  event={event}
+                  onHover={() => {}}
+                />
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                No events found
+              </h3>
+              <p className="text-gray-600">
+                Try adjusting your search or filters to find more events.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Show More Button */}
+        {hasMoreLocal && (
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={handleShowMore}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Show More Events
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

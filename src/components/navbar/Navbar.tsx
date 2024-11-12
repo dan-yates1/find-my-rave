@@ -28,8 +28,8 @@ export default function Navbar() {
       event: input,
       location: location,
     });
-    router.push(`/find-events?${searchParams.toString()}`);
-  }, [router]);
+    window.location.href = `/find-events?${searchParams.toString()}`;
+  }, []);
 
   const handleProfileClick = () => setShowProfileMenu(!showProfileMenu);
 

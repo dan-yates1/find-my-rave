@@ -43,3 +43,50 @@ export async function getLatLon(location: string): Promise<{ lat: number; lon: n
     return null;
   }
 }
+
+export const getDateRangeFilter = (dateRange: string, customDate?: string) => {
+  const now = new Date();
+  const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+  
+  switch (dateRange) {
+    case 'today':
+      return {
+        startDate: startOfDay,
+        endDate: new Date(now.setHours(23, 59, 59, 999))
+      };
+    case 'tomorrow':
+      const tomorrow = new Date(startOfDay);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return {
+        startDate: tomorrow,
+        endDate: new Date(tomorrow.setHours(23, 59, 59, 999))
+      };
+    case 'this-week':
+      const endOfWeek = new Date(startOfDay);
+      endOfWeek.setDate(endOfWeek.getDate() + (7 - endOfWeek.getDay()));
+      return {
+        startDate: startOfDay,
+        endDate: new Date(endOfWeek.setHours(23, 59, 59, 999))
+      };
+    case 'weekend':
+      const startOfWeekend = new Date(startOfDay);
+      startOfWeekend.setDate(startOfWeekend.getDate() + (6 - startOfWeekend.getDay()));
+      const endOfWeekend = new Date(startOfWeekend);
+      endOfWeekend.setDate(endOfWeekend.getDate() + 1);
+      return {
+        startDate: startOfWeekend,
+        endDate: new Date(endOfWeekend.setHours(23, 59, 59, 999))
+      };
+    case 'custom':
+      if (customDate) {
+        const selectedDate = new Date(customDate);
+        return {
+          startDate: selectedDate,
+          endDate: new Date(selectedDate.setHours(23, 59, 59, 999))
+        };
+      }
+      return null;
+    default:
+      return null;
+  }
+};

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 import { redis } from "@/lib/redis";
 import { z } from "zod";
+import { getDateRangeFilter } from "@/lib/utils";
 
 interface Event {
   id: string;
@@ -22,6 +23,10 @@ const searchParamsSchema = z.object({
   location: z.string().optional(),
   skip: z.string().transform(Number).optional(),
   limit: z.string().transform(Number).optional(),
+  platform: z.string().optional(),
+  dateRange: z.string().optional(),
+  customDate: z.string().optional(),
+  priceRange: z.string().optional(),
 });
 
 export async function GET(req: Request) {
@@ -39,8 +44,11 @@ export async function GET(req: Request) {
     const location = validatedParams.location || "";
     const skip = validatedParams.skip || 0;
     const limit = validatedParams.limit || 36;
+    const platform = validatedParams.platform;
+    const dateRange = validatedParams.dateRange;
+    const customDate = validatedParams.customDate;
 
-    const cacheKey = `events:${searchQuery}:${location}:${skip}:${limit}`;
+    const cacheKey = `events:${searchQuery}:${location}:${skip}:${limit}:${platform}:${dateRange}:${customDate}`;
     console.log("Checking cache for key:", cacheKey);
 
     // Try to get cached results first
@@ -55,31 +63,53 @@ export async function GET(req: Request) {
 
     console.log("❌ Cache MISS! Fetching fresh data for:", cacheKey);
 
-    // If no cache, fetch from API
-    const params = {
+    // Build params object for the backend API
+    const params: Record<string, string> = {
       keywords: searchQuery.replace(/\s+/g, "+"),
-      location: location,
       max_events: (skip + limit).toString(),
-      platform: "skiddle",
     };
 
-    const response = await axios.get(`${process.env.EVENTS_API_URL}/events/`, {
+    // Only add optional parameters if they exist
+    if (location) {
+      params.location = location;
+    }
+
+    if (platform && platform !== 'all') {
+      params.platform = platform;
+    }
+
+    // Handle date filtering
+    if (dateRange && dateRange !== 'all') {
+      const dates = getDateRangeFilter(dateRange, customDate);
+      if (dates) {
+        params.from_date = dates.startDate.toISOString().split('T')[0];
+        params.to_date = dates.endDate.toISOString().split('T')[0];
+      }
+    }
+
+    const baseUrl = process.env.EVENTS_API_URL?.replace(/\/+$/, '');
+    const response = await axios.get(`${baseUrl}/events`, {
       params,
       headers: {
         Accept: "application/json",
       },
     });
 
+    // Handle 404 gracefully
+    if (response.status === 404) {
+      return NextResponse.json({
+        events: [],
+        hasMore: false,
+        total: 0,
+        fromCache: false,
+      });
+    }
+
     const allEvents = response.data || [];
     const eventsWithPlatform = allEvents.map((event: any) => ({
       ...event,
       ...(event.platform && { platform: event.platform }),
     }));
-
-    // Sort events by date (closest first)
-    /*  const sortedEvents = eventsWithPlatform.sort((a: any, b: any) => {
-      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-    }); */
 
     const paginatedEvents = allEvents.slice(skip, skip + limit);
     const totalEvents = allEvents.length;
@@ -92,7 +122,7 @@ export async function GET(req: Request) {
     };
 
     // Cache the results
-    await redis.set(cacheKey, responseData, { ex: 300 }); // Cache for 5 minutes
+    await redis.set(cacheKey, responseData, { ex: 300 });
     console.log("✅ Cached new data for:", cacheKey);
 
     clearTimeout(timeout);
@@ -101,15 +131,24 @@ export async function GET(req: Request) {
       fromCache: false,
     });
   } catch (error: any) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid parameters" },
-        { status: 400 }
-      );
+    console.error("Error fetching events:", error.response?.data || error.message);
+    
+    // Return empty results for 404
+    if (error.response?.status === 404) {
+      return NextResponse.json({
+        events: [],
+        hasMore: false,
+        total: 0,
+        fromCache: false,
+      });
     }
-    console.error("Error:", error);
+
+    // Handle other errors
     return NextResponse.json(
-      { message: "Error fetching data", details: error.message },
+      { 
+        message: "Error fetching data", 
+        details: error.response?.data?.detail || error.message 
+      },
       { status: error.response?.status || 500 }
     );
   }

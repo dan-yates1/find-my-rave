@@ -72,7 +72,7 @@ export default function EventCard({
               iconClassName="w-5 h-5"
             />
           </div>
-          <div className="absolute bottom-2 left-2">
+          {/* <div className="absolute bottom-2 left-2">
             <span
               className={`inline-block px-2 py-1 text-xs font-medium text-white bg-black/50 backdrop-blur-sm rounded-full
                 ${event.platform === 'skiddle' ? 'bg-purple-500/80' :
@@ -82,7 +82,7 @@ export default function EventCard({
             >
               {event.platform || 'Unknown'}
             </span>
-          </div>
+          </div> */}
         </div>
 
         <div className="flex flex-col flex-grow p-4">

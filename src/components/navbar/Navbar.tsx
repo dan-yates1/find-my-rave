@@ -119,7 +119,7 @@ export default function Navbar() {
                 href="/create-event"
                 className="text-[#39364F] font-medium hover:bg-gray-100 rounded-full px-4 py-2 transition-colors"
               >
-                Create Events
+                Submit Event
               </Link>
               <div className="relative" ref={dropdownRef}>
                 <button

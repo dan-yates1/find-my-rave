@@ -1,25 +1,28 @@
 import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const SkeletonEventCard: React.FC = () => {
+const SkeletonEventCard = () => {
   return (
-    <div className="flex space-x-4 p-4 rounded-xl mb-6 bg-gray-100 animate-pulse">
-      {/* Image Skeleton */}
-      <Skeleton className="w-52 h-28 rounded-lg" />
+    <div className="relative h-full bg-white rounded-2xl shadow-sm overflow-hidden">
+      {/* Image skeleton */}
+      <div className="relative w-full pt-[56.25%] bg-gray-200 animate-pulse"></div>
 
-      {/* Event Details Skeleton */}
-      <div className="flex-1 space-y-4 py-1">
-        <Skeleton className="h-6 w-3/4 rounded-full" />
-        <Skeleton className="h-4 w-1/2 rounded-full" />
-        <div className="flex items-center space-x-2 gap-5">
-          <Skeleton className="h-5 w-20 rounded-full" />
-          <Skeleton className="h-5 w-20 rounded-full" />
+      {/* Content */}
+      <div className="p-4 space-y-3">
+        {/* Date skeleton */}
+        <div className="w-32 h-4 bg-gray-200 rounded animate-pulse" />
+
+        {/* Title skeleton - two lines */}
+        <div className="space-y-2">
+          <div className="w-full h-5 bg-gray-200 rounded animate-pulse" />
+          <div className="w-2/3 h-5 bg-gray-200 rounded animate-pulse" />
         </div>
-      </div>
 
-      {/* Bookmark Icon Skeleton */}
-      <div className="ml-auto flex items-center">
-        <Skeleton className="h-5 w-5 rounded-full" />
+        {/* Location skeleton */}
+        <div className="flex items-center space-x-2">
+          <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
+          <div className="w-3/4 h-4 bg-gray-200 rounded animate-pulse" />
+        </div>
       </div>
     </div>
   );

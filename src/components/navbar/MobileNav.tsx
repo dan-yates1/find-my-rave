@@ -10,6 +10,7 @@ import {
   UserCircleIcon,
   MapIcon,
   PlusCircleIcon,
+  FunnelIcon,
 } from "@heroicons/react/24/outline";
 import SearchBar from "./SearchBar";
 import { useRouter } from "next/navigation";

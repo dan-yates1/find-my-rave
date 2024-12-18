@@ -215,7 +215,7 @@ export default function SearchBar({
         } bg-white border border-gray-300 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200`}
       >
         {/* Search Input */}
-        <div className={`flex items-center ${compact ? 'p-2' : 'pl-6'}`}>
+        <div className={`flex items-center ${compact ? 'p-2' : 'pl-6 flex-1'}`}>
           <MagnifyingGlassIcon className="h-5 w-5 stroke-2 text-gray-400" />
           <input
             ref={searchInputRef}
@@ -228,8 +228,8 @@ export default function SearchBar({
           />
         </div>
 
-        {/* Location Input */}
-        <div className={`flex items-center ${compact ? 'p-2 border-t' : 'pl-3 border-l'}`}>
+        {/* Location Input with Search Button */}
+        <div className={`flex items-center ${compact ? 'p-2 border-t' : 'pl-3 border-l flex-1'}`}>
           <MapPinIcon className="h-5 w-5 stroke-2 text-gray-400" />
           <input
             type="text"
@@ -242,6 +242,14 @@ export default function SearchBar({
             }}
             className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-500 px-2"
           />
+          {!compact && (
+            <button
+              type="submit"
+              className="h-full px-6 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+            >
+              Search
+            </button>
+          )}
         </div>
 
         {/* Search Button - Only show in compact mode */}
@@ -259,9 +267,12 @@ export default function SearchBar({
       {showSuggestions && locationSuggestions.length > 0 && (
         <div 
           ref={suggestionsRef}
-          className={`absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto ${
-            compact ? 'left-0 right-0' : ''
+          className={`absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 ${
+            compact ? 'left-0 right-0' : 'right-0 w-[50%]'
           }`}
+          style={{ 
+            right: compact ? 0 : '0px'
+          }}
         >
           {locationSuggestions.map((suggestion, index) => (
             <button
@@ -283,9 +294,12 @@ export default function SearchBar({
       {showRecentSearches && recentSearches.length > 0 && (
         <div
           ref={recentSearchesRef}
-          className={`absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 ${
-            compact ? 'left-0 right-0' : ''
+          className={`absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 ${
+            compact ? 'left-0 right-0' : 'left-0 w-[50%]'
           }`}
+          style={{ 
+            left: compact ? 0 : '24px'
+          }}
         >
           <div className="p-2 border-b">
             <h3 className="text-sm font-medium text-gray-500">Recent Searches</h3>

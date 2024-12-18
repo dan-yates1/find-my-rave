@@ -9,6 +9,8 @@ interface SearchBarProps {
   onSearch: (params: { input: string; location: string }) => void;
   initialInput?: string;
   initialLocation?: string;
+  className?: string;
+  compact?: boolean;
 }
 
 const MAX_RECENT_SEARCHES = 5;
@@ -23,6 +25,8 @@ export default function SearchBar({
   onSearch,
   initialInput = "",
   initialLocation = "",
+  className = "",
+  compact = false,
 }: SearchBarProps) {
   const [input, setInput] = useState(initialInput);
   const [location, setLocation] = useState(initialLocation);
@@ -189,14 +193,30 @@ export default function SearchBar({
     setIsFocused(false);
   };
 
-  return (
-    <form onSubmit={handleSubmit} className="w-full px-8">
-      <div className="relative flex h-12 bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-shadow duration-200">
-        <div className="flex items-center pl-6">
-          <MagnifyingGlassIcon className="h-5 w-5 stroke-2 text-gray-400" />
-        </div>
+  const handleLocationInput = (value: string) => {
+    setLocation(value);
+    if (value.length > 1) {
+      setShowSuggestions(true);
+    } else {
+      setLocationSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
 
-        <div className="flex-1 flex items-center pl-3 relative">
+  return (
+    <form 
+      onSubmit={handleSubmit} 
+      className={`w-full ${compact ? 'px-0' : 'px-8'} ${className} relative`}
+    >
+      <div className={`relative flex ${
+        compact 
+          ? 'flex-col space-y-2' 
+          : 'h-12'
+        } bg-white border border-gray-300 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200`}
+      >
+        {/* Search Input */}
+        <div className={`flex items-center ${compact ? 'p-2' : 'pl-6'}`}>
+          <MagnifyingGlassIcon className="h-5 w-5 stroke-2 text-gray-400" />
           <input
             ref={searchInputRef}
             type="text"
@@ -204,104 +224,97 @@ export default function SearchBar({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onFocus={() => setShowRecentSearches(true)}
-            className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-500"
+            className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-500 px-2"
           />
-          
-          {/* Recent Searches Dropdown */}
-          {showRecentSearches && recentSearches.length > 0 && (
-            <div
-              ref={recentSearchesRef}
-              className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
-            >
-              <div className="p-2 border-b border-gray-200">
-                <p className="text-sm text-gray-500">Recent Searches</p>
-              </div>
-              {recentSearches.map((search, index) => (
-                <div
-                  key={index}
-                  onClick={() => handleRecentSearchClick(search)}
-                  className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 hover:rounded-lg cursor-pointer"
-                >
-                  <div className="flex items-center space-x-2">
-                    <ClockIcon className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="text-sm text-gray-900">{search.input || search.location}</p>
-                      {search.input && search.location && (
-                        <p className="text-xs text-gray-500">{search.location}</p>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => clearRecentSearch(index, e)}
-                    className="p-1 hover:bg-gray-100 rounded-full"
-                  >
-                    <XMarkIcon className="h-4 w-4 text-gray-400" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
-        <div className="h-full flex items-center px-4">
-          <div className="h-6 w-[1px] bg-gray-300"></div>
-        </div>
-
-        <div className="flex-1 relative flex items-center pl-2">
-          <MapPinIcon className="h-5 w-5 text-gray-400" />
+        {/* Location Input */}
+        <div className={`flex items-center ${compact ? 'p-2 border-t' : 'pl-3 border-l'}`}>
+          <MapPinIcon className="h-5 w-5 stroke-2 text-gray-400" />
           <input
             type="text"
             placeholder="Location..."
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={(e) => handleLocationInput(e.target.value)}
             onFocus={() => {
+              setShowSuggestions(true);
               setIsFocused(true);
-              if (!location) {
-                setShowSuggestions(true);
-              }
             }}
-            className="w-full bg-transparent border-none outline-none pl-2 pr-4 text-gray-900 placeholder-gray-500"
+            className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-500 px-2"
           />
-          {((showSuggestions && locationSuggestions.length > 0) || (isFocused && !location)) && (
-            <div
-              ref={suggestionsRef}
-              className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
-            >
-              {!location && (
-                <button
-                  type="button"
-                  onClick={handleCurrentLocation}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
-                >
-                  <MapPinIcon className="h-5 w-5 text-gray-400" />
-                  <span className="text-gray-700">Use current location</span>
-                </button>
-              )}
-              {locationSuggestions.map((suggestion, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50"
-                  onClick={() => handleLocationSelect(suggestion.name)}
-                >
-                  <div className="text-sm text-gray-900">{suggestion.mainPlace}</div>
-                  <div className="text-xs text-gray-500">{suggestion.subtext}</div>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
-        <div className="pr-2 pl-1 flex items-center">
+        {/* Search Button - Only show in compact mode */}
+        {compact && (
           <button
             type="submit"
-            className="p-2 bg-blue-600 rounded-full hover:bg-blue-700 transition-colors"
-            aria-label="Search"
+            className="w-full bg-blue-600 text-white p-2 rounded-b-lg hover:bg-blue-700 transition-colors"
           >
-            <MagnifyingGlassIcon className="h-5 w-5 text-white" />
+            Search
           </button>
-        </div>
+        )}
       </div>
+
+      {/* Location Suggestions - Adjusted for mobile */}
+      {showSuggestions && locationSuggestions.length > 0 && (
+        <div 
+          ref={suggestionsRef}
+          className={`absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto ${
+            compact ? 'left-0 right-0' : ''
+          }`}
+        >
+          {locationSuggestions.map((suggestion, index) => (
+            <button
+              key={index}
+              type="button"
+              className="w-full text-left px-4 py-2 hover:bg-gray-50 focus:bg-gray-50 transition-colors"
+              onClick={() => handleLocationSelect(suggestion.name)}
+            >
+              <div className="text-sm text-gray-900">{suggestion.mainPlace}</div>
+              {suggestion.subtext && (
+                <div className="text-xs text-gray-500">{suggestion.subtext}</div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Recent Searches - Adjusted for mobile */}
+      {showRecentSearches && recentSearches.length > 0 && (
+        <div
+          ref={recentSearchesRef}
+          className={`absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 ${
+            compact ? 'left-0 right-0' : ''
+          }`}
+        >
+          <div className="p-2 border-b">
+            <h3 className="text-sm font-medium text-gray-500">Recent Searches</h3>
+          </div>
+          {recentSearches.map((search, index) => (
+            <button
+              key={index}
+              type="button"
+              className="w-full text-left px-4 py-2 hover:bg-gray-50 focus:bg-gray-50 transition-colors"
+              onClick={() => {
+                setInput(search.input);
+                setLocation(search.location);
+                setShowRecentSearches(false);
+                handleSubmit({ preventDefault: () => {} } as React.FormEvent<HTMLFormElement>);
+              }}
+            >
+              <div className="flex items-center">
+                <ClockIcon className="w-4 h-4 text-gray-400 mr-2" />
+                <div>
+                  <div className="text-sm text-gray-900">{search.input}</div>
+                  {search.location && (
+                    <div className="text-xs text-gray-500">{search.location}</div>
+                  )}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </form>
   );
 }

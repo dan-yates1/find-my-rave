@@ -56,6 +56,24 @@ const nextConfig = {
         port: "",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "i.ytimg.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "*.googleusercontent.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "*.imgur.com",
+        port: "",
+        pathname: "/**",
+      }
     ],
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,

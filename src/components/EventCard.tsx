@@ -55,6 +55,7 @@ export default function EventCard({
             alt={event.title}
             fill
             className="object-cover"
+            unoptimized={true}
           />
           <div 
             className={`absolute top-2 right-2 transition-opacity duration-200 ${

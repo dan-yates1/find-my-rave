@@ -101,10 +101,8 @@ export default function Navbar() {
             <SearchBar onSearch={handleSearch} />
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="lg:hidden">
-            <MobileNav />
-          </div>
+          {/* Mobile Navigation */}
+          <MobileNav />
 
           {/* Navigation and Profile - Desktop */}
           <div className="hidden lg:flex lg:items-center flex-shrink-0">

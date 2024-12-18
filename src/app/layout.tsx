@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/navbar/Navbar";
 import SessionProviderWrapper from "@/components/SessionProviderWrapper";
 import QueryProvider from "@/providers/QueryProvider";
+import { Analytics } from "@vercel/analytics/react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,7 +25,10 @@ export default function RootLayout({
           <SessionProviderWrapper>
             <div className="flex flex-col min-h-screen bg-white">
               <Navbar />
-              <main className="flex-grow">{children}</main>
+              <main className="flex-grow">
+                {children}
+                <Analytics />
+              </main>
             </div>
           </SessionProviderWrapper>
         </QueryProvider>

@@ -74,20 +74,20 @@ export async function GET(req: Request) {
       params.location = location;
     }
 
-    if (platform && platform !== 'all') {
-      params.platform = platform;
+    if (platform && platform !== "all") {
+      params.platform = "skiddle";
     }
 
     // Handle date filtering
-    if (dateRange && dateRange !== 'all') {
+    if (dateRange && dateRange !== "all") {
       const dates = getDateRangeFilter(dateRange, customDate);
       if (dates) {
-        params.from_date = dates.startDate.toISOString().split('T')[0];
-        params.to_date = dates.endDate.toISOString().split('T')[0];
+        params.from_date = dates.startDate.toISOString().split("T")[0];
+        params.to_date = dates.endDate.toISOString().split("T")[0];
       }
     }
 
-    const baseUrl = process.env.EVENTS_API_URL?.replace(/\/+$/, '');
+    const baseUrl = process.env.EVENTS_API_URL?.replace(/\/+$/, "");
     const response = await axios.get(`${baseUrl}/events`, {
       params,
       headers: {
@@ -131,8 +131,11 @@ export async function GET(req: Request) {
       fromCache: false,
     });
   } catch (error: any) {
-    console.error("Error fetching events:", error.response?.data || error.message);
-    
+    console.error(
+      "Error fetching events:",
+      error.response?.data || error.message
+    );
+
     // Return empty results for 404
     if (error.response?.status === 404) {
       return NextResponse.json({
@@ -145,9 +148,9 @@ export async function GET(req: Request) {
 
     // Handle other errors
     return NextResponse.json(
-      { 
-        message: "Error fetching data", 
-        details: error.response?.data?.detail || error.message 
+      {
+        message: "Error fetching data",
+        details: error.response?.data?.detail || error.message,
       },
       { status: error.response?.status || 500 }
     );

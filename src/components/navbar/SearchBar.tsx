@@ -11,6 +11,9 @@ interface SearchBarProps {
   initialLocation?: string;
   className?: string;
   compact?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  isLocationVisible?: boolean;
 }
 
 const MAX_RECENT_SEARCHES = 5;
@@ -27,6 +30,9 @@ export default function SearchBar({
   initialLocation = "",
   className = "",
   compact = false,
+  onFocus,
+  onBlur,
+  isLocationVisible = false,
 }: SearchBarProps) {
   const [input, setInput] = useState(initialInput);
   const [location, setLocation] = useState(initialLocation);
@@ -39,6 +45,7 @@ export default function SearchBar({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debouncedLocation = useDebounce(location, 300);
   const recentSearchesRef = useRef<HTMLDivElement>(null);
+  const searchContainerRef = useRef<HTMLFormElement>(null);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -155,20 +162,22 @@ export default function SearchBar({
   }, [debouncedLocation, isFocused]);
 
   useEffect(() => {
+    if (!compact) return; // Only apply this behavior for mobile
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(event.target as Node)
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
       ) {
+        onBlur?.();
         setShowSuggestions(false);
         setIsFocused(false);
-        setLocationSuggestions([]);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [compact, onBlur]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -206,72 +215,75 @@ export default function SearchBar({
   return (
     <form 
       onSubmit={handleSubmit} 
-      className={`w-full ${compact ? 'px-0' : 'px-8'} ${className} relative`}
+      className={`w-full ${className} relative`}
+      ref={searchContainerRef}
     >
-      <div className={`relative flex ${
-        compact 
-          ? 'flex-col space-y-2' 
-          : 'h-12'
-        } bg-white border border-gray-300 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200`}
-      >
+      <div className={compact ? "flex flex-col gap-2" : "flex rounded-full border"}>
         {/* Search Input */}
-        <div className={`flex items-center ${compact ? 'p-2' : 'pl-6 flex-1'}`}>
-          <MagnifyingGlassIcon className="h-5 w-5 stroke-2 text-gray-400" />
+        <div className={`flex items-center ${
+          compact 
+            ? 'bg-gray-100 rounded-full p-2' 
+            : 'flex-1 pl-4 pr-2 py-2'
+        }`}>
+          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
           <input
             ref={searchInputRef}
             type="text"
             placeholder="Search events..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onFocus={() => setShowRecentSearches(true)}
-            className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-500 px-2"
-          />
-        </div>
-
-        {/* Location Input with Search Button */}
-        <div className={`flex items-center ${compact ? 'p-2 border-t' : 'pl-3 border-l flex-1'}`}>
-          <MapPinIcon className="h-5 w-5 stroke-2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Location..."
-            value={location}
-            onChange={(e) => handleLocationInput(e.target.value)}
             onFocus={() => {
-              setShowSuggestions(true);
-              setIsFocused(true);
+              setShowRecentSearches(true);
+              onFocus?.();
             }}
             className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-500 px-2"
           />
-          {!compact && (
-            <button
-              type="submit"
-              className="h-full px-6 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
-            >
-              Search
-            </button>
-          )}
         </div>
 
-        {/* Search Button - Only show in compact mode */}
-        {compact && (
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white p-2 rounded-b-lg hover:bg-blue-700 transition-colors"
-          >
-            Search
-          </button>
+        {/* Location Input */}
+        {(!compact || (compact && isLocationVisible)) && (
+          <div className={`flex items-center relative ${
+            compact 
+              ? 'bg-gray-100 rounded-full p-2' 
+              : 'flex-1 pl-4 pr-2 py-2 border-l'
+          }`}>
+            <MapPinIcon className="h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Location..."
+              value={location}
+              onChange={(e) => handleLocationInput(e.target.value)}
+              onFocus={() => {
+                setShowSuggestions(true);
+                setIsFocused(true);
+              }}
+              className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-500 px-2"
+            />
+            
+            {/* Search Button - Desktop Only */}
+            {!compact && (
+              <button
+                type="submit"
+                className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors"
+                aria-label="Search"
+              >
+                <MagnifyingGlassIcon className="h-5 w-5" />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Location Suggestions - Adjusted for mobile */}
+      {/* Location Suggestions - Aligned with location input */}
       {showSuggestions && locationSuggestions.length > 0 && (
         <div 
           ref={suggestionsRef}
           className={`absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 ${
-            compact ? 'left-0 right-0' : 'right-0 w-[50%]'
+            compact ? 'left-0 right-0' : 'w-[50%]'
           }`}
           style={{ 
-            right: compact ? 0 : '0px'
+            left: compact ? 0 : '50%',
+            top: '100%'
           }}
         >
           {locationSuggestions.map((suggestion, index) => (
@@ -290,15 +302,16 @@ export default function SearchBar({
         </div>
       )}
 
-      {/* Recent Searches - Adjusted for mobile */}
+      {/* Recent Searches - Aligned with search input */}
       {showRecentSearches && recentSearches.length > 0 && (
         <div
           ref={recentSearchesRef}
           className={`absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 ${
-            compact ? 'left-0 right-0' : 'left-0 w-[50%]'
+            compact ? 'left-0 right-0' : 'w-[50%]'
           }`}
           style={{ 
-            left: compact ? 0 : '24px'
+            left: 0,
+            top: '100%'
           }}
         >
           <div className="p-2 border-b">

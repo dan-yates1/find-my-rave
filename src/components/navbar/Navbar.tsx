@@ -88,8 +88,9 @@ export default function Navbar() {
   );
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b py-1 border-gray-200">
-      <nav className="mx-auto px-4 sm:px-6">
+    <header className="sticky top-0 z-50 bg-white border-b">
+      {/* Desktop Navigation */}
+      <nav className="hidden lg:block mx-auto px-4 py-1 sm:px-6">
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0 mr-3">
@@ -100,9 +101,6 @@ export default function Navbar() {
           <div className="hidden lg:flex flex-1">
             <SearchBar onSearch={handleSearch} />
           </div>
-
-          {/* Mobile Navigation */}
-          <MobileNav />
 
           {/* Navigation and Profile - Desktop */}
           <div className="hidden lg:flex lg:items-center flex-shrink-0">
@@ -147,6 +145,9 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
+
+      {/* Mobile Navigation */}
+      <MobileNav />
     </header>
   );
 }

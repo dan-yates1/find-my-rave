@@ -162,30 +162,22 @@ export default function SearchBar({
   }, [debouncedLocation, isFocused]);
 
   useEffect(() => {
-    if (!compact) return; // Only apply this behavior for mobile
-
     const handleClickOutside = (event: MouseEvent) => {
+      // Handle location suggestions click-outside
       if (
-        searchContainerRef.current &&
-        !searchContainerRef.current.contains(event.target as Node)
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        !searchContainerRef.current?.contains(event.target as Node)
       ) {
-        onBlur?.();
         setShowSuggestions(false);
         setIsFocused(false);
       }
-    };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [compact, onBlur]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+      // Handle recent searches click-outside
       if (
-        searchInputRef.current &&
         recentSearchesRef.current &&
-        !searchInputRef.current.contains(event.target as Node) &&
-        !recentSearchesRef.current.contains(event.target as Node)
+        !recentSearchesRef.current.contains(event.target as Node) &&
+        !searchContainerRef.current?.contains(event.target as Node)
       ) {
         setShowRecentSearches(false);
       }

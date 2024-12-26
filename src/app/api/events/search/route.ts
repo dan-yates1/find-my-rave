@@ -1,22 +1,8 @@
-// src/app/api/events/search/route.ts
 import { NextResponse } from "next/server";
 import axios from "axios";
-import { redis } from "@/lib/redis";
 import { z } from "zod";
-import { getDateRangeFilter } from "@/lib/utils";
 
-interface Event {
-  id: string;
-  title: string;
-  // ... other event fields ...
-  platform: string;
-}
-
-interface CachedData {
-  events: Event[];
-  hasMore: boolean;
-  total: number;
-}
+const SKIDDLE_API_BASE = "https://www.skiddle.com/api/v1";
 
 const searchParamsSchema = z.object({
   event: z.string().optional(),
@@ -26,7 +12,6 @@ const searchParamsSchema = z.object({
   platform: z.string().optional(),
   dateRange: z.string().optional(),
   customDate: z.string().optional(),
-  priceRange: z.string().optional(),
 });
 
 export async function GET(req: Request) {
@@ -36,121 +21,104 @@ export async function GET(req: Request) {
       Object.fromEntries(searchParams)
     );
 
-    // Add request timeout
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-
-    const searchQuery = validatedParams.event || "";
+    const keyword = validatedParams.event || "";
     const location = validatedParams.location || "";
-    const skip = validatedParams.skip || 0;
-    const limit = validatedParams.limit || 36;
-    const platform = validatedParams.platform;
+    const offset = validatedParams.skip || 0;
+    const limit = Math.min(validatedParams.limit || 12, 24);
     const dateRange = validatedParams.dateRange;
-    const customDate = validatedParams.customDate;
 
-    const cacheKey = `events:${searchQuery}:${location}:${skip}:${limit}:${platform}:${dateRange}:${customDate}`;
-    console.log("Checking cache for key:", cacheKey);
+    // Construct Skiddle API URL with enhanced parameters
+    const params = new URLSearchParams({
+      api_key: process.env.SKIDDLE_API_KEY!,
+      keyword,
+      offset: offset.toString(),
+      limit: limit.toString(),
+      order: 'date',
+      description: '1',
+      ticketsavailable: '1',
+    });
 
-    // Try to get cached results first
-    const cachedData = await redis.get<CachedData>(cacheKey);
-    if (cachedData) {
-      console.log("🎯 Cache HIT! Returning cached data for:", cacheKey);
-      return NextResponse.json({
-        ...cachedData,
-        fromCache: true,
-      });
-    }
-
-    console.log("❌ Cache MISS! Fetching fresh data for:", cacheKey);
-
-    // Build params object for the backend API
-    const params: Record<string, string> = {
-      keywords: searchQuery.replace(/\s+/g, "+"),
-      max_events: (skip + limit).toString(),
-    };
-
-    // Only add optional parameters if they exist
-    if (location) {
-      params.location = location;
-    }
-
-    if (platform && platform !== "all") {
-      params.platform = "skiddle";
-    }
-
-    // Handle date filtering
-    if (dateRange && dateRange !== "all") {
-      const dates = getDateRangeFilter(dateRange, customDate);
-      if (dates) {
-        params.from_date = dates.startDate.toISOString().split("T")[0];
-        params.to_date = dates.endDate.toISOString().split("T")[0];
+    // Add date filtering based on dateRange
+    if (dateRange) {
+      const today = new Date();
+      switch (dateRange) {
+        case 'today':
+          params.append('minDate', today.toISOString().split('T')[0]);
+          params.append('maxDate', today.toISOString().split('T')[0]);
+          break;
+        case 'tomorrow': {
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          params.append('minDate', tomorrow.toISOString().split('T')[0]);
+          params.append('maxDate', tomorrow.toISOString().split('T')[0]);
+          break;
+        }
+        case 'this-week': {
+          const endOfWeek = new Date(today);
+          endOfWeek.setDate(endOfWeek.getDate() + 7);
+          params.append('minDate', today.toISOString().split('T')[0]);
+          params.append('maxDate', endOfWeek.toISOString().split('T')[0]);
+          break;
+        }
+        case 'weekend': {
+          const friday = new Date(today);
+          friday.setDate(friday.getDate() + (5 - friday.getDay()));
+          const sunday = new Date(friday);
+          sunday.setDate(sunday.getDate() + 2);
+          params.append('minDate', friday.toISOString().split('T')[0]);
+          params.append('maxDate', sunday.toISOString().split('T')[0]);
+          break;
+        }
       }
     }
 
-    const baseUrl = process.env.EVENTS_API_URL?.replace(/\/+$/, "");
-    const response = await axios.get(`${baseUrl}/events`, {
-      params,
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    // Handle 404 gracefully
-    if (response.status === 404) {
-      return NextResponse.json({
-        events: [],
-        hasMore: false,
-        total: 0,
-        fromCache: false,
-      });
+    // Add location search if provided
+    if (location) {
+      // Note: In a production app, you'd want to use a geocoding service here
+      // to convert location string to lat/long
+      params.append('keyword', `${keyword} ${location}`);
     }
 
-    const allEvents = response.data || [];
-    const eventsWithPlatform = allEvents.map((event: any) => ({
-      ...event,
-      ...(event.platform && { platform: event.platform }),
+    console.log('Calling Skiddle API with params:', params.toString());
+    const response = await axios.get(`${SKIDDLE_API_BASE}/events/search?${params.toString()}`);
+    
+    // Transform Skiddle response to match your app's format
+    const events = response.data.results.map((event: any) => ({
+      id: event.id,
+      title: event.eventname,
+      description: event.description || '',
+      startDate: event.startdate,
+      endDate: event.enddate || event.startdate,
+      location: event.venue.name,
+      town: event.venue.town,
+      latitude: parseFloat(event.venue.latitude),
+      longitude: parseFloat(event.venue.longitude),
+      link: event.link,
+      imageUrl: event.largeimageurl || event.imageurl,
+      price: event.entryprice || 0,
+      platform: 'skiddle',
+      approved: true,
+      // Add new fields from description=1 parameter
+      artists: event.artists || [],
+      genres: event.genres || [],
+      minAge: event.MinAge || null,
     }));
 
-    const paginatedEvents = allEvents.slice(skip, skip + limit);
-    const totalEvents = allEvents.length;
-    const hasMore = skip + limit < totalEvents;
-
-    const responseData: CachedData = {
-      events: paginatedEvents,
-      hasMore,
-      total: totalEvents,
-    };
-
-    // Cache the results
-    await redis.set(cacheKey, responseData, { ex: 300 });
-    console.log("✅ Cached new data for:", cacheKey);
-
-    clearTimeout(timeout);
     return NextResponse.json({
-      ...responseData,
+      events,
+      hasMore: offset + limit < response.data.totalcount,
+      total: response.data.totalcount,
+      currentPage: Math.floor(offset / limit) + 1,
+      totalPages: Math.ceil(response.data.totalcount / limit),
       fromCache: false,
     });
+
   } catch (error: any) {
-    console.error(
-      "Error fetching events:",
-      error.response?.data || error.message
-    );
-
-    // Return empty results for 404
-    if (error.response?.status === 404) {
-      return NextResponse.json({
-        events: [],
-        hasMore: false,
-        total: 0,
-        fromCache: false,
-      });
-    }
-
-    // Handle other errors
+    console.error("Error fetching events:", error.response?.data || error.message);
     return NextResponse.json(
       {
-        message: "Error fetching data",
-        details: error.response?.data?.detail || error.message,
+        message: "Error fetching events",
+        details: error.response?.data?.error || error.message,
       },
       { status: error.response?.status || 500 }
     );

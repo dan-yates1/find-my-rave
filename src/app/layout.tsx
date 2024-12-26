@@ -11,6 +11,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Find My Rave",
   description: "Find the best raves near you!",
+  appleWebApp: {
+    title: "Find My Rave"
+  }
 };
 
 export default function RootLayout({

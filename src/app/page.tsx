@@ -32,7 +32,7 @@ export default function Home() {
               you.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
+            {/* <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
               <Link href="/find-events">
                 <button className="w-full sm:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium hover-effect">
                   Find Events
@@ -43,7 +43,7 @@ export default function Home() {
                   Submit an Event
                 </button>
               </Link>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

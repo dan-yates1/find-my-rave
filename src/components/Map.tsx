@@ -14,9 +14,10 @@ interface MapProps {
   events: Event[];
   center?: [number, number];
   onMarkerClick?: (eventId: string) => void;
+  zoom?: number;
 }
 
-export default function Map({ events, center, onMarkerClick }: MapProps) {
+export default function Map({ events, center, onMarkerClick, zoom }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<mapboxgl.Marker[]>([]);
@@ -31,7 +32,7 @@ export default function Map({ events, center, onMarkerClick }: MapProps) {
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12',
       center: centreLatLon,
-      zoom: 11
+      zoom: zoom || 11
     });
 
     // Add navigation controls

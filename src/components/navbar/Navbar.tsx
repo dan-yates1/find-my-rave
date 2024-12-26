@@ -105,7 +105,7 @@ export default function Navbar() {
           {/* Navigation and Profile - Desktop */}
           <div className="hidden lg:flex lg:items-center flex-shrink-0">
             <div className="flex items-center space-x-2">
-              <Link
+              {/* <Link
                 href="/find-events"
                 className="text-[#39364F] font-medium hover:bg-gray-100 rounded-full px-4 py-2 transition-colors -mr-2"
               >
@@ -116,7 +116,7 @@ export default function Navbar() {
                 className="text-[#39364F] font-medium hover:bg-gray-100 rounded-full px-4 py-2 transition-colors"
               >
                 Submit Event
-              </Link>
+              </Link> */}
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={handleProfileClick}

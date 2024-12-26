@@ -224,6 +224,11 @@ export default function SearchBar({
             placeholder="Search events..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSubmit(e);
+              }
+            }}
             onFocus={() => {
               setShowRecentSearches(true);
               onFocus?.();
@@ -245,9 +250,16 @@ export default function SearchBar({
               placeholder="Location..."
               value={location}
               onChange={(e) => handleLocationInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSubmit(e);
+                }
+              }}
+              enterKeyHint="search"
               onFocus={() => {
-                setShowSuggestions(true);
                 setIsFocused(true);
+                setShowRecentSearches(false);
+                onFocus?.();
               }}
               className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-500 px-2"
             />

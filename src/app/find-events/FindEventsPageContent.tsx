@@ -132,88 +132,103 @@ const FindEventsPageContent = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="flex flex-col lg:flex-row h-full">
-        {/* Main Content */}
-        <div className="flex-1">
-          {/* Search Title Section - Added more padding for mobile */}
-          <div className="flex items-center justify-between px-6 pt-6 pb-4 lg:py-6">
-            <h1 className="text-2xl font-bold text-gray-900">
-              {eventQuery ? `${capitalizeFirstLetter(eventQuery)} events` : "All events"}
-              {locationQuery && ` in ${locationQuery}`}
-            </h1>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="lg:hidden p-2 text-gray-600 hover:text-gray-900"
-              aria-label="Toggle filters"
-            >
-              <FunnelIcon className="w-6 h-6" />
-            </button>
-          </div>
-
-          {/* Filters Sidebar */}
-          {isFiltersVisible && (
-            <div className="hidden lg:block w-72 flex-shrink-0 bg-white rounded-lg shadow-sm mt-6 h-fit">
-              <div className="p-6 space-y-6">
-                {/* Date Filter */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">Date</h3>
-                  <div className="space-y-3">
-                    {dateFilterOptions.map((option) => (
-                      <label
-                        key={option.value}
-                        className="flex items-center space-x-3 text-gray-600 hover:text-gray-900"
-                      >
-                        <input
-                          type="radio"
-                          name="dateFilter"
-                          value={option.value}
-                          checked={filters.dateRange === option.value}
-                          onChange={(e) => handleDateFilterChange(e.target.value)}
-                          className="text-blue-600 focus:ring-blue-500 h-4 w-4"
-                        />
-                        <span className="text-sm">{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                  
-                  {/* Custom Date Input */}
-                  {showCustomDate && (
-                    <input
-                      type="date"
-                      value={filters.customDate}
-                      onChange={(e) => handleFilterChange('customDate', e.target.value)}
-                      className="mt-3 w-full rounded-md border-gray-200 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  )}
+      <div className="mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col lg:flex-row gap-8 relative">
+          {/* Desktop Filters Sidebar */}
+          <div 
+            className={`hidden lg:block transition-all duration-300 ease-in-out ${
+              isFiltersVisible 
+                ? 'w-72 opacity-100' 
+                : 'w-0 opacity-0 overflow-hidden'
+            }`}
+          >
+            <div className="sticky top-24">
+              <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+                {/* Desktop Filter Toggle */}
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">Filters</h2>
+                  <button
+                    onClick={() => setIsFiltersVisible(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <FunnelIcon className="w-5 h-5" />
+                  </button>
                 </div>
 
-                {/* Price Range Filter */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">Price Range</h3>
-                  <select
-                    value={filters.priceRange}
-                    onChange={(e) => handleFilterChange('priceRange', e.target.value)}
-                    className="w-full rounded-md border-gray-200 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500"
-                  >
-                    <option value="all">Any price</option>
-                    <option value="free">Free</option>
-                    <option value="paid">Paid</option>
-                  </select>
+                {/* Filter Content */}
+                <div className="space-y-6">
+                  {/* Date Filter */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">Date</h3>
+                    <div className="space-y-3">
+                      {dateFilterOptions.map((option) => (
+                        <label
+                          key={option.value}
+                          className="flex items-center space-x-3 text-gray-600 hover:text-gray-900"
+                        >
+                          <input
+                            type="radio"
+                            name="dateFilter"
+                            value={option.value}
+                            checked={filters.dateRange === option.value}
+                            onChange={(e) => handleDateFilterChange(e.target.value)}
+                            className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                          />
+                          <span className="text-sm">{option.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                    
+                    {/* Custom Date Input */}
+                    {showCustomDate && (
+                      <input
+                        type="date"
+                        value={filters.customDate}
+                        onChange={(e) => handleFilterChange('customDate', e.target.value)}
+                        className="mt-3 w-full rounded-md border-gray-200 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    )}
+                  </div>
+
+                  {/* Price Range Filter */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">Price Range</h3>
+                    <select
+                      value={filters.priceRange}
+                      onChange={(e) => handleFilterChange('priceRange', e.target.value)}
+                      className="w-full rounded-md border-gray-200 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500"
+                    >
+                      <option value="all">Any price</option>
+                      <option value="free">Free</option>
+                      <option value="paid">Paid</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Events Grid */}
-          <div 
-            className={`flex-1 ${isFiltersVisible ? 'lg:ml-8' : ''} overflow-y-auto scrollbar-hide`}
-            style={{
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              WebkitOverflowScrolling: 'touch'
-            }}
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
+          {/* Main Content Area */}
+          <div className="flex-1">
+            {/* Desktop Title with Filter Toggle */}
+            <div className="hidden lg:flex items-center justify-between mb-6 border-b border-gray-200 pb-4">
+              <h1 className="text-2xl font-bold text-gray-900 mt-4">
+                {eventQuery ? `${capitalizeFirstLetter(eventQuery)} events` : "All events"}
+                {locationQuery && ` in ${locationQuery}`}
+              </h1>
+              {!isFiltersVisible && (
+                <button
+                  onClick={() => setIsFiltersVisible(true)}
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                >
+                  <FunnelIcon className="w-5 h-5" />
+                  <span>Show Filters</span>
+                </button>
+              )}
+            </div>
+
+            {/* Events Grid - Updated to 4 columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
               {isLoading ? (
                 Array.from({ length: 12 }).map((_, i) => (
                   <SkeletonEventCard key={i} />
@@ -241,7 +256,7 @@ const FindEventsPageContent = () => {
               )}
             </div>
 
-            {/* Show More Button */}
+            {/* Pagination */}
             {data?.hasMore && (
               <div className="flex justify-center gap-2 py-6">
                 {Array.from({ length: data.totalPages }, (_, i) => i + 1)

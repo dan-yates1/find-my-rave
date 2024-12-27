@@ -12,7 +12,8 @@ import {
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
-import BookmarkButton from './BookmarkButton';
+import BookmarkButton from "./BookmarkButton";
+import { GENRE_MAPPINGS } from "@/lib/constants";
 
 interface EventCardProps {
   event: Event & {
@@ -29,14 +30,14 @@ export default function EventCard({
   const router = useRouter();
 
   const formattedDate = event?.startDate
-    ? format(new Date(event.startDate), 'EEE, MMM d, yyyy')
-    : 'Date TBA';
+    ? format(new Date(event.startDate), "EEE, MMM d, yyyy")
+    : "Date TBA";
 
   const formattedTime = event?.startDate
-    ? format(new Date(event.startDate), 'h:mm a')
-    : 'Time TBA';
+    ? format(new Date(event.startDate), "h:mm a")
+    : "Time TBA";
 
-  const formattedLocation = event?.location || 'Location TBA';
+  const formattedLocation = event?.location || "Location TBA";
 
   if (!event?.id) {
     return null;
@@ -44,25 +45,21 @@ export default function EventCard({
 
   return (
     <Link href={`/events/${event.platform}/${event.id}`}>
-      <div 
+      <div
         className="h-full bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         <div className="relative aspect-[16/9]">
           <Image
-            src={event.imageUrl || '/event-placeholder.jpg'}
+            src={event.imageUrl || "/event-placeholder.jpg"}
             alt={event.title}
             fill
             className="object-cover"
             unoptimized={true}
           />
           <div className="absolute top-2 right-2 z-10">
-            <BookmarkButton 
-              eventId={event.id} 
-              variant="card"
-              size="sm"
-            />
+            <BookmarkButton eventId={event.id} variant="card" size="sm" />
           </div>
           {/* <div className="absolute bottom-2 left-2">
             <span
@@ -79,7 +76,7 @@ export default function EventCard({
 
         <div className="flex flex-col flex-grow p-4">
           <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-            {event.title || 'Untitled Event'}
+            {event.title || "Untitled Event"}
           </h3>
 
           <div className="mt-auto pt-2 border-t border-gray-100">

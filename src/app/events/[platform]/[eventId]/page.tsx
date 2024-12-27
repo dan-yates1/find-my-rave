@@ -12,11 +12,18 @@ interface EventDetailsPageProps {
   };
 }
 
+// Add loading and error states
+export const dynamic = 'force-dynamic';
+export const revalidate = 300; // Revalidate every 5 minutes
+
 async function getEvent(platform: string, eventId: string) {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const response = await fetch(`${baseUrl}/api/events/${platform}/${eventId}`, {
-      next: { revalidate: 60 },
+      next: { revalidate: 300 }, // Cache for 5 minutes
+      headers: {
+        'Accept-Encoding': 'gzip',
+      }
     });
 
     if (!response.ok) {

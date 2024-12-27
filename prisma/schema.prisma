@@ -26,6 +26,7 @@ model Event {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   userEvents  UserEvent[]
+  bookmarks   Bookmark[]
 
   @@map("events")
 }
@@ -95,4 +96,15 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verificationTokens")
+}
+
+model Bookmark {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String
+  eventId   String   @db.String
+  createdAt DateTime @default(now())
+  event     Event    @relation(fields: [eventId], references: [id])
+
+  @@unique([userId, eventId])
+  @@map("bookmarks")
 }

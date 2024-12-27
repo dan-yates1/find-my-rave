@@ -10,9 +10,9 @@ import {
   MapPinIcon,
 } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
-import SaveEventButton from "./SaveEventButton";
 import Link from "next/link";
 import { format } from "date-fns";
+import BookmarkButton from './BookmarkButton';
 
 interface EventCardProps {
   event: Event & {
@@ -57,20 +57,11 @@ export default function EventCard({
             className="object-cover"
             unoptimized={true}
           />
-          <div 
-            className={`absolute top-2 right-2 transition-opacity duration-200 ${
-              isHovered ? 'opacity-100' : 'opacity-0'
-            }`}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-          >
-            <SaveEventButton
-              eventId={event.id}
-              eventData={event}
-              className="bg-white/90 hover:bg-white backdrop-blur-sm rounded-full p-2 transition-all duration-200 shadow-sm"
-              iconClassName="w-5 h-5"
+          <div className="absolute top-2 right-2 z-10">
+            <BookmarkButton 
+              eventId={event.id} 
+              variant="card"
+              size="sm"
             />
           </div>
           {/* <div className="absolute bottom-2 left-2">

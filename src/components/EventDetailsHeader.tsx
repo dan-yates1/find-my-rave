@@ -2,11 +2,11 @@
 
 import { Event } from "@prisma/client";
 import Image from "next/image";
-import { CalendarIcon, MapPinIcon, ClockIcon, CameraIcon } from "@heroicons/react/24/outline";
-import SaveEventButton from "./SaveEventButton";
+import { CalendarIcon, MapPinIcon, ClockIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import BookmarkButton from './BookmarkButton';
 
 interface EventDetailsHeaderProps {
   event: Event;
@@ -35,13 +35,12 @@ const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
         />
         
         
-        {/* Save Button - Positioned in top right */}
-        <div className="absolute bottom-4 right-4 z-10">
-          <SaveEventButton 
+        {/* Bookmark Button - Positioned in top right */}
+        <div className="absolute top-4 right-4 z-10">
+          <BookmarkButton 
             eventId={event.id}
-            eventData={event}
-            className="bg-white/10 backdrop-blur-sm hover:bg-white/20 border border-white/30 rounded-full p-2.5 transition-all duration-200"
-            iconClassName="w-6 h-6 text-white"
+            variant="detail"
+            size="lg"
           />
         </div>
       </div>

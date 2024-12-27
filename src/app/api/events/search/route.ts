@@ -33,7 +33,7 @@ export async function GET(req: Request) {
       keyword,
       offset: offset.toString(),
       limit: limit.toString(),
-      order: 'date',
+      order: 'trending',
       description: '1',
       ticketsavailable: '1',
     });

@@ -1,26 +1,28 @@
-import { getServerSession } from "next-auth/next";
-import { redirect } from "next/navigation";
-import { authOptions } from "@/auth";
-import { PrismaClient } from "@prisma/client";
+import BookmarkedEvents from "@/components/profile/BookmarkedEvents";
 import ProfileContent from "./ProfileContent";
-
-const prisma = new PrismaClient();
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/auth";
+import prisma from "@/lib/prisma";
+import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
-
-  if (!session) {
-    redirect("/login-register");
+  
+  if (!session?.user?.email) {
+    redirect('/login-register');
   }
 
-  // Fetch fresh user data from the database
   const user = await prisma.user.findUnique({
-    where: { email: session?.user?.email ?? '' },
+    where: { email: session.user.email },
   });
 
   if (!user) {
-    redirect("/login-register");
+    redirect('/login-register');
   }
 
-  return <ProfileContent user={user} />;
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <ProfileContent user={user} />
+    </div>
+  );
 } 

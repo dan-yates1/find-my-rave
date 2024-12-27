@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import axios from "axios";
+import { headers } from 'next/headers';
 
 const SKIDDLE_API_BASE = "https://www.skiddle.com/api/v1";
+
+// Add caching for the Skiddle API responses
+const cache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export async function GET(
   request: Request,
@@ -12,18 +17,26 @@ export async function GET(
       throw new Error('Only Skiddle events are supported');
     }
 
+    // Check cache first
+    const cacheKey = `event-${params.platform}-${params.eventId}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
+      return NextResponse.json(cachedData.data);
+    }
+
     const response = await axios.get(`${SKIDDLE_API_BASE}/events/${params.eventId}`, {
       params: {
         api_key: process.env.SKIDDLE_API_KEY,
         description: '1',
         venue: '1',
         artist: '1'
+      },
+      headers: {
+        'Accept-Encoding': 'gzip',
       }
     });
 
     const skiddleEvent = response.data.results;
-
-    // Transform to your app's format with additional fields
     const event = {
       id: skiddleEvent.id,
       title: skiddleEvent.eventname,
@@ -57,6 +70,12 @@ export async function GET(
         lastentry: skiddleEvent.openingtimes?.lastentry || null,
       }
     };
+
+    // Store in cache
+    cache.set(cacheKey, {
+      data: event,
+      timestamp: Date.now()
+    });
 
     return NextResponse.json(event);
   } catch (error: any) {

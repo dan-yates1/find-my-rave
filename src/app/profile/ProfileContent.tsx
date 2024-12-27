@@ -56,9 +56,9 @@ export default function ProfileContent({ user }: ProfileContentProps) {
   };
 
   return (
-    <div className="mx-auto space-y-8">
-      {/* Profile Header */}
-      <div className="bg-white p-6 border-b border-gray-200">
+    <div className="mx-auto space-y-6">
+      {/* Profile Header - Flat modern design */}
+      <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl border border-gray-100">
         <div className="flex items-center gap-6">
           <div className="relative group">
             <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100">
@@ -98,45 +98,51 @@ export default function ProfileContent({ user }: ProfileContentProps) {
         </div>
       </div>
 
-      {/* Improved Tabs */}
-      <Tabs defaultValue={activeTab} className="space-y-8">
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <TabsList className="inline-flex h-14 items-center justify-center rounded-lg bg-gray-100/80 p-1.5 gap-1">
+      {/* Improved Tabs with mobile-friendly design */}
+      <Tabs defaultValue={activeTab} className="space-y-6">
+        <div className="bg-white/90 backdrop-blur-sm p-2 sm:p-4 rounded-xl border border-gray-100 overflow-x-auto">
+          <TabsList className="inline-flex w-full sm:w-auto min-w-full sm:min-w-[400px] h-12 sm:h-14 items-center justify-start sm:justify-center rounded-lg bg-gray-50 p-1 gap-1">
             <TabsTrigger
               value="saved"
               onClick={() => setActiveTab("saved")}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-3 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm hover:bg-gray-50 data-[state=active]:hover:bg-white"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 sm:px-6 py-2.5 sm:py-3 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:border data-[state=active]:border-gray-100 hover:bg-gray-50 data-[state=active]:hover:bg-white"
             >
-              <BookmarkIcon className="w-4 h-4 mr-2" />
-              Saved Events
+              <BookmarkIcon className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Saved Events</span>
             </TabsTrigger>
             <TabsTrigger
               value="history"
               onClick={() => setActiveTab("history")}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-3 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm hover:bg-gray-50 data-[state=active]:hover:bg-white"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 sm:px-6 py-2.5 sm:py-3 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:border data-[state=active]:border-gray-100 hover:bg-gray-50 data-[state=active]:hover:bg-white"
             >
-              <ClockIcon className="w-4 h-4 mr-2" />
-              Event History
+              <ClockIcon className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Event History</span>
             </TabsTrigger>
             <TabsTrigger
               value="settings"
               onClick={() => setActiveTab("settings")}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-3 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm hover:bg-gray-50 data-[state=active]:hover:bg-white"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 sm:px-6 py-2.5 sm:py-3 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:border data-[state=active]:border-gray-100 hover:bg-gray-50 data-[state=active]:hover:bg-white"
             >
-              <Cog6ToothIcon className="w-4 h-4 mr-2" />
-              Settings
+              <Cog6ToothIcon className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Settings</span>
             </TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="saved" className="mt-6">
-          <BookmarkedEvents />
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100">
+            <BookmarkedEvents />
+          </div>
         </TabsContent>
         <TabsContent value="history" className="mt-6">
-          <EventHistory />
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100">
+            <EventHistory />
+          </div>
         </TabsContent>
         <TabsContent value="settings" className="mt-6">
-          <AccountSettings />
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-gray-100">
+            <AccountSettings />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

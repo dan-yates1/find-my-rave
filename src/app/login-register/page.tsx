@@ -114,12 +114,12 @@ export default function Component() {
       <div className="relative z-10 w-full h-full flex items-center justify-center px-4">
         <Card className="w-full max-w-md bg-white">
           <CardContent className="p-6">
-            <h1 className="text-2xl font-black text-center text-blue-600 mb-6">
+            {/* <h1 className="text-2xl font-black text-center text-blue-600 mb-6">
               FINDMYRAVE
             </h1>
             <p className="text-center text-gray-600 mb-6">
               Join the community and discover amazing events
-            </p>
+            </p> */}
             {error && (
               <div className="mb-4 p-3 bg-red-100 text-red-600 rounded-lg text-sm">
                 {error}

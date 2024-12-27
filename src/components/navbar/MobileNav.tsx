@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
@@ -12,13 +12,14 @@ import {
   PlusCircleIcon,
 } from "@heroicons/react/24/outline";
 import SearchBar from "./SearchBar";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function MobileNav() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLocationVisible, setIsLocationVisible] = useState(false);
   const { data: session } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleSearch = ({ input, location }: { input: string; location: string }) => {
     const searchParams = new URLSearchParams();
@@ -29,11 +30,17 @@ export default function MobileNav() {
     setIsLocationVisible(false);
   };
 
+  // Reset location visibility when component mounts or route changes
+  useEffect(() => {
+    setIsLocationVisible(false);
+  }, [pathname]);
+
   const handleFocus = () => {
     setIsLocationVisible(true);
   };
 
   const handleBlur = () => {
+    // Add a small delay to allow for click events to complete
     setTimeout(() => {
       setIsLocationVisible(false);
     }, 200);
@@ -49,7 +56,10 @@ export default function MobileNav() {
           </Link>
           
           <button
-            onClick={() => setIsMenuOpen(true)}
+            onClick={() => {
+              setIsMenuOpen(true);
+              setIsLocationVisible(false); // Hide location when menu opens
+            }}
             className="p-2 text-gray-600"
             aria-label="Open menu"
           >
@@ -63,8 +73,8 @@ export default function MobileNav() {
             onSearch={handleSearch}
             onFocus={handleFocus}
             onBlur={handleBlur}
-            isLocationVisible={isLocationVisible}
             compact
+            isLocationVisible={isLocationVisible}
           />
         </div>
       </div>

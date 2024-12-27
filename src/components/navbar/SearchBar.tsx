@@ -161,31 +161,37 @@ export default function SearchBar({
     fetchLocationSuggestions();
   }, [debouncedLocation, isFocused]);
 
+  // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Handle location suggestions click-outside
       if (
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(event.target as Node) &&
-        !searchContainerRef.current?.contains(event.target as Node)
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
       ) {
         setShowSuggestions(false);
-        setIsFocused(false);
-      }
-
-      // Handle recent searches click-outside
-      if (
-        recentSearchesRef.current &&
-        !recentSearchesRef.current.contains(event.target as Node) &&
-        !searchContainerRef.current?.contains(event.target as Node)
-      ) {
         setShowRecentSearches(false);
+        setIsFocused(false);
+        onBlur?.();
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onBlur]);
+
+  // Handle input focus
+  const handleInputFocus = () => {
+    setShowRecentSearches(true);
+    setIsFocused(true);
+    onFocus?.();
+  };
+
+  // Handle location focus
+  const handleLocationFocus = () => {
+    setShowRecentSearches(false);
+    setIsFocused(true);
+    onFocus?.();
+  };
 
   const handleLocationSelect = (locationName: string) => {
     setLocation(locationName.split(',')[0]);
@@ -214,68 +220,59 @@ export default function SearchBar({
         {/* Search Input */}
         <div className={`flex items-center ${
           compact 
-            ? 'bg-gray-100 rounded-full p-2' 
+            ? 'bg-gray-100 rounded-full p-2 w-full' 
             : 'flex-1 pl-4 pr-2 py-2'
         }`}>
-          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
           <input
             ref={searchInputRef}
             type="text"
             placeholder="Search events..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleSubmit(e);
-              }
-            }}
-            onFocus={() => {
-              setShowRecentSearches(true);
-              onFocus?.();
-            }}
+            onFocus={handleInputFocus}
             className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-500 px-2"
           />
         </div>
 
         {/* Location Input */}
-        {(!compact || (compact && isLocationVisible)) && (
-          <div className={`flex items-center relative ${
+        <div 
+          className={`
+            ${compact ? 'overflow-hidden transition-all duration-300 ease-in-out w-full' : 'flex-1 relative'}
+            ${(!compact || (compact && isLocationVisible)) 
+              ? 'max-h-[48px] opacity-100' 
+              : 'max-h-0 opacity-0'
+            }
+          `}
+        >
+          {!compact && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[1px] h-[60%] bg-gray-300" />}
+          <div className={`flex items-center h-full ${
             compact 
-              ? 'bg-gray-100 rounded-full p-2' 
-              : 'flex-1 pl-4 pr-2 py-2 border-l'
+              ? 'bg-gray-100 rounded-full p-2 w-full' 
+              : 'pl-4 pr-2 py-2'
           }`}>
-            <MapPinIcon className="h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Location..."
-              value={location}
-              onChange={(e) => handleLocationInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSubmit(e);
-                }
-              }}
-              enterKeyHint="search"
-              onFocus={() => {
-                setIsFocused(true);
-                setShowRecentSearches(false);
-                onFocus?.();
-              }}
-              className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-500 px-2"
-            />
-            
-            {/* Search Button - Desktop Only */}
+            <MapPinIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+            <div className="flex-1 flex items-center">
+              <input
+                type="text"
+                placeholder="Location..."
+                value={location}
+                onChange={(e) => handleLocationInput(e.target.value)}
+                onFocus={handleLocationFocus}
+                enterKeyHint="search"
+                className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-500 px-2"
+              />
+            </div>
             {!compact && (
               <button
                 type="submit"
-                className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors"
-                aria-label="Search"
+                className="p-2 text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors flex-shrink-0"
               >
                 <MagnifyingGlassIcon className="h-5 w-5" />
               </button>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Location Suggestions - Aligned with location input */}

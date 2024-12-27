@@ -12,8 +12,8 @@ export const metadata: Metadata = {
   title: "Find My Rave",
   description: "Find the best raves near you!",
   appleWebApp: {
-    title: "Find My Rave"
-  }
+    title: "Find My Rave",
+  },
 };
 
 export default function RootLayout({
@@ -23,19 +23,39 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="light" suppressHydrationWarning>
-      <body className={`${inter.className} bg-white text-black`}>
-        <QueryProvider>
-          <SessionProviderWrapper>
-            <div className="flex flex-col min-h-screen bg-white">
-              <Navbar />
-              <main className="flex-grow">
-                {children}
-                <Analytics />
-              </main>
-            </div>
-          </SessionProviderWrapper>
-        </QueryProvider>
-      </body>
+      <head>
+        <link
+          rel="apple-touch-icon"
+          sizes="180x180"
+          href="/apple-touch-icon.png"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="32x32"
+          href="/favicon-32x32.png"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="16x16"
+          href="/favicon-16x16.png"
+        />
+        <link rel="manifest" href="/site.webmanifest" />
+        <body className={`${inter.className} bg-white text-black`}>
+          <QueryProvider>
+            <SessionProviderWrapper>
+              <div className="flex flex-col min-h-screen bg-white">
+                <Navbar />
+                <main className="flex-grow">
+                  {children}
+                  <Analytics />
+                </main>
+              </div>
+            </SessionProviderWrapper>
+          </QueryProvider>
+        </body>
+      </head>
     </html>
   );
 }

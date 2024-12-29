@@ -19,14 +19,21 @@ export const revalidate = 300; // Revalidate every 5 minutes
 async function getEvent(platform: string, eventId: string) {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/events/${platform}/${eventId}`, {
-      next: { revalidate: 300 }, // Cache for 5 minutes
+    const url = `${baseUrl}/api/events/${platform}/${eventId}`;
+    console.log('Fetching event from:', url);
+    
+    const response = await fetch(url, {
+      next: { revalidate: 300 },
       headers: {
         'Accept-Encoding': 'gzip',
       }
     });
 
     if (!response.ok) {
+      console.error('Event fetch failed:', {
+        status: response.status,
+        statusText: response.statusText
+      });
       throw new Error('Event not found');
     }
 

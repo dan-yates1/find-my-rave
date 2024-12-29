@@ -12,11 +12,16 @@ export async function GET(
   request: Request,
   { params }: { params: { platform: string; eventId: string } }
 ) {
+  console.log('Event details request:', params);
+
   try {
     if (params.platform !== 'skiddle') {
       throw new Error('Only Skiddle events are supported');
     }
 
+    // Add more detailed logging for debugging
+    console.log('Calling Skiddle API:', `${SKIDDLE_API_BASE}/events/${params.eventId}`);
+    
     // Check cache first
     const cacheKey = `event-${params.platform}-${params.eventId}`;
     const cachedData = cache.get(cacheKey);
@@ -24,19 +29,21 @@ export async function GET(
       return NextResponse.json(cachedData.data);
     }
 
+    // Add description=1 to get full event details
     const response = await axios.get(`${SKIDDLE_API_BASE}/events/${params.eventId}`, {
       params: {
         api_key: process.env.SKIDDLE_API_KEY,
         description: '1',
         venue: '1',
         artist: '1'
-      },
-      headers: {
-        'Accept-Encoding': 'gzip',
       }
     });
 
+    console.log('Skiddle API response status:', response.status);
+
     const skiddleEvent = response.data.results;
+
+    // Transform the response to match our Event type
     const event = {
       id: skiddleEvent.id,
       title: skiddleEvent.eventname,
@@ -63,12 +70,7 @@ export async function GET(
         phone: skiddleEvent.venue.phone,
         website: skiddleEvent.venue.webLink,
       },
-      ticketsAvailable: skiddleEvent.tickets || false,
-      openingtimes: {
-        doorsopen: skiddleEvent.openingtimes?.doorsopen || null,
-        doorsclose: skiddleEvent.openingtimes?.doorsclose || null,
-        lastentry: skiddleEvent.openingtimes?.lastentry || null,
-      }
+      openingtimes: skiddleEvent.openingtimes || null
     };
 
     // Store in cache

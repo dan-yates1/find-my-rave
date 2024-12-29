@@ -210,6 +210,13 @@ export default function SearchBar({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+    }
+  };
+
   return (
     <form 
       onSubmit={handleSubmit} 
@@ -226,11 +233,13 @@ export default function SearchBar({
           <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
           <input
             ref={searchInputRef}
-            type="text"
+            type="search"
             placeholder="Search events..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onFocus={handleInputFocus}
+            onKeyDown={handleKeyDown}
+            enterKeyHint="search"
             className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-500 px-2"
           />
         </div>
@@ -254,11 +263,12 @@ export default function SearchBar({
             <MapPinIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
             <div className="flex-1 flex items-center">
               <input
-                type="text"
+                type="search"
                 placeholder="Location..."
                 value={location}
                 onChange={(e) => handleLocationInput(e.target.value)}
                 onFocus={handleLocationFocus}
+                onKeyDown={handleKeyDown}
                 enterKeyHint="search"
                 className="w-full bg-transparent border-none outline-none text-gray-900 placeholder-gray-500 px-2"
               />
@@ -274,6 +284,9 @@ export default function SearchBar({
           </div>
         </div>
       </div>
+
+      {/* Add a hidden submit button for mobile form submission */}
+      <button type="submit" className="hidden" />
 
       {/* Location Suggestions - Aligned with location input */}
       {showSuggestions && locationSuggestions.length > 0 && (

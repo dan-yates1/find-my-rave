@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Event } from "@prisma/client";
 import Image from "next/image";
 import {
@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import BookmarkButton from "./BookmarkButton";
-import { GENRE_MAPPINGS } from "@/lib/constants";
+import { useSession } from "next-auth/react";
 
 interface EventCardProps {
   event: Event & {
@@ -22,12 +22,28 @@ interface EventCardProps {
   onHover?: (id: string | null) => void;
 }
 
-export default function EventCard({
-  event,
-  onHover = () => {},
-}: EventCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
-  const router = useRouter();
+export default function EventCard({ event, onHover }: EventCardProps) {
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const { data: session } = useSession();
+
+  // Check if event is bookmarked on component mount
+  useEffect(() => {
+    const checkBookmarkStatus = async () => {
+      if (!session?.user?.email) return;
+      
+      try {
+        const response = await fetch(`/api/bookmarks/check/${event.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setIsBookmarked(data.isBookmarked);
+        }
+      } catch (error) {
+        console.error('Error checking bookmark status:', error);
+      }
+    };
+
+    checkBookmarkStatus();
+  }, [event.id, session?.user?.email]);
 
   const formattedDate = event?.startDate
     ? format(new Date(event.startDate), "EEE, MMM d, yyyy")
@@ -44,11 +60,14 @@ export default function EventCard({
   }
 
   return (
-    <Link href={`/events/${event.platform}/${event.id}`}>
+    <Link
+      href={`/events/${event.platform || 'skiddle'}/${event.id}`}
+      className="group relative block h-full overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-200 hover:shadow-md"
+      onMouseEnter={() => onHover?.(event.id)}
+      onMouseLeave={() => onHover?.(null)}
+    >
       <div
         className="h-full bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
         <div className="relative aspect-[16/9]">
           <Image
@@ -58,8 +77,12 @@ export default function EventCard({
             className="object-cover"
             unoptimized={true}
           />
-          <div className="absolute top-2 right-2 z-10">
-            <BookmarkButton eventId={event.id} variant="card" size="sm" />
+          <div className="absolute right-4 top-4 z-10">
+            <BookmarkButton
+              eventId={event.id}
+              initialIsBookmarked={isBookmarked}
+              variant="card"
+            />
           </div>
           {/* <div className="absolute bottom-2 left-2">
             <span

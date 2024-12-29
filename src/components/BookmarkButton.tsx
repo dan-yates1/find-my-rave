@@ -5,6 +5,7 @@ import { BookmarkIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkIconSolid } from '@heroicons/react/24/solid';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface BookmarkButtonProps {
   eventId: string;
@@ -23,6 +24,7 @@ export default function BookmarkButton({
   const [isLoading, setIsLoading] = useState(false);
   const { data: session } = useSession();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const sizeClasses = {
     sm: 'h-4 w-4',
@@ -32,11 +34,14 @@ export default function BookmarkButton({
 
   const variantClasses = {
     default: 'bg-white/90 hover:bg-white shadow-sm',
-    card: 'bg-black/50 hover:bg-black/60 backdrop-blur-sm',
+    card: 'bg-white/90 hover:bg-white/100',
     detail: 'bg-gray-100 hover:bg-gray-200'
   };
 
-  const handleBookmark = async () => {
+  const handleBookmark = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (!session) {
       router.push('/login-register');
       return;
@@ -54,9 +59,9 @@ export default function BookmarkButton({
 
       if (response.ok) {
         setIsBookmarked(!isBookmarked);
-        // Show toast notification
-        const message = isBookmarked ? 'Event removed from bookmarks' : 'Event bookmarked';
-        // You can implement a toast notification system here
+        queryClient.invalidateQueries({ queryKey: ['bookmarkedEvents'] });
+        queryClient.invalidateQueries({ queryKey: ['eventHistory'] });
+        queryClient.invalidateQueries({ queryKey: ['bookmarkStatus', eventId] });
       }
     } catch (error) {
       console.error('Error toggling bookmark:', error);
@@ -69,18 +74,12 @@ export default function BookmarkButton({
     <button
       onClick={handleBookmark}
       disabled={isLoading}
-      className={`
-        ${variantClasses[variant]}
-        p-2 rounded-full transition-all duration-200 ease-in-out
-        ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}
-        ${variant === 'card' ? 'text-white' : 'text-gray-700'}
-      `}
-      aria-label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+      className={`rounded-full p-2 ${variantClasses[variant]} transition-all duration-200`}
     >
       {isBookmarked ? (
-        <BookmarkIconSolid className={`${sizeClasses[size]} ${variant === 'card' ? 'text-white' : 'text-blue-600'}`} />
+        <BookmarkIconSolid className={`${sizeClasses[size]} text-blue-600`} />
       ) : (
-        <BookmarkIcon className={sizeClasses[size]} />
+        <BookmarkIcon className={`${sizeClasses[size]} text-gray-500`} />
       )}
     </button>
   );

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 import { z } from "zod";
 import { GENRE_MAPPINGS, SKIDDLE_GENRE_MAPPING } from '@/lib/constants';
+import { getLatLon } from "@/lib/utils";
 
 const SKIDDLE_API_BASE = "https://www.skiddle.com/api/v1";
 
@@ -94,9 +95,15 @@ export async function GET(req: Request) {
 
     // Add location search if provided
     if (location) {
-      // Note: In a production app, you'd want to use a geocoding service here
-      // to convert location string to lat/long
-      params.append('keyword', `${keyword} ${location}`);
+      const coords = await getLatLon(location);
+      if (coords) {
+        params.append('latitude', coords.lat.toString());
+        params.append('longitude', coords.lon.toString());
+        params.append('radius', '20'); // 20 miles radius - adjust as needed
+      } else {
+        // Fallback to keyword-based location search if geocoding fails
+        params.append('keyword', `${keyword} ${location}`);
+      }
     }
 
     // Add genre filtering if specified

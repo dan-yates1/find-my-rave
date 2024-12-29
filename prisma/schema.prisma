@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Event {
-  id          String   @id @map("_id")
+  id          String   @id @map("_id") @db.String
   slug        String   @unique
   title       String
   description String?

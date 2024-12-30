@@ -18,19 +18,18 @@ export const revalidate = 0; // Disable static page generation
 
 async function getEvent(platform: string, eventId: string) {
   try {
-    // Get the base URL from environment variable or construct it
-    const baseUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}`
-      : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-    // Construct the full URL
+    // Check if we're running on the server side
+    const isServer = typeof window === 'undefined';
+    
+    // Construct the URL based on environment
+    const baseUrl = isServer 
+      ? process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      : '';
+    
     const url = `${baseUrl}/api/events/${platform}/${eventId}`;
     
     const response = await fetch(url, {
       cache: 'no-store',
-      headers: {
-        'Accept-Encoding': 'gzip',
-      }
     });
 
     if (!response.ok) {

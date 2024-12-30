@@ -42,7 +42,7 @@ export default function RootLayout({
           sizes="16x16"
           href="/favicon-16x16.png"
         />
-        <link rel="manifest" href="/site.webmanifest" />
+        <meta name="apple-mobile-web-app-capable" content="no" />
         <body className={`${inter.className} bg-white text-black`}>
           <QueryProvider>
             <SessionProviderWrapper>

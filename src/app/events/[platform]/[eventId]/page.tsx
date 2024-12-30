@@ -14,16 +14,20 @@ interface EventDetailsPageProps {
 
 // Add loading and error states
 export const dynamic = 'force-dynamic';
-export const revalidate = 300; // Revalidate every 5 minutes
+export const revalidate = 0; // Disable static page generation
 
 async function getEvent(platform: string, eventId: string) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    // Get the base URL from environment variable or construct it
+    const baseUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    // Construct the full URL
     const url = `${baseUrl}/api/events/${platform}/${eventId}`;
-    console.log('Fetching event from:', url);
     
     const response = await fetch(url, {
-      next: { revalidate: 300 },
+      cache: 'no-store',
       headers: {
         'Accept-Encoding': 'gzip',
       }

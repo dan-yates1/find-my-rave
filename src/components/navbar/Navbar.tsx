@@ -124,54 +124,39 @@ export default function Navbar() {
           </Link>
 
           {/* Search Bar - Desktop */}
-          <div className="hidden lg:flex flex-1">
+          <div className="flex-1">
             <SearchBar onSearch={handleSearch} />
           </div>
 
           {/* Navigation and Profile - Desktop */}
-          <div className="hidden lg:flex lg:items-center flex-shrink-0">
-            <div className="flex items-center space-x-2">
-              {/* <Link
-                href="/find-events"
-                className="text-[#39364F] font-medium hover:bg-gray-100 rounded-full px-4 py-2 transition-colors -mr-2"
+          <div className="flex items-center space-x-2">
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={handleProfileClick}
+                className="flex items-center space-x-2 ml-2 text-gray-500 hover:text-gray-600"
               >
-                Find Events
-              </Link>
-              <Link
-                href="/create-event"
-                className="text-[#39364F] font-medium hover:bg-gray-100 rounded-full px-4 py-2 transition-colors"
-              >
-                Submit Event
-              </Link> */}
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={handleProfileClick}
-                  className="flex items-center space-x-2 ml-2 text-gray-500 hover:text-gray-600 bg-gray-200 rounded-full p-3"
-                >
-                  {session?.user ? (
-                    userImage ? (
-                      <Image
-                        src={userImage}
-                        alt="Profile"
-                        width={40}
-                        height={40}
-                        className="rounded-full"
-                        priority={true}
-                      />
-                    ) : (
-                      <div className="w-[40px] h-[40px] rounded-full bg-gray-200 flex items-center justify-center">
-                        <UserIcon className="w-6 h-6 text-gray-500" />
-                      </div>
-                    )
+                {session?.user ? (
+                  userImage ? (
+                    <Image
+                      src={userImage}
+                      alt="Profile"
+                      width={40}
+                      height={40}
+                      className="rounded-full"
+                      priority={true}
+                    />
                   ) : (
-                    <UserIcon className="w-6 h-6" />
-                  )}
-                </button>
-                
-                {showProfileMenu && (
-                  <ProfileMenu />
+                    <div className="w-[40px] h-[40px] rounded-full bg-gray-100 flex items-center justify-center">
+                      <UserIcon className="w-6 h-6 text-gray-400" />
+                    </div>
+                  )
+                ) : (
+                  <div className="w-[40px] h-[40px] rounded-full bg-gray-100 flex items-center justify-center">
+                    <UserIcon className="w-6 h-6 text-gray-400" />
+                  </div>
                 )}
-              </div>
+              </button>
+              {showProfileMenu && <ProfileMenu />}
             </div>
           </div>
         </div>

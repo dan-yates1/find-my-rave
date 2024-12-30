@@ -15,6 +15,7 @@ interface MapProps {
   center?: [number, number];
   onMarkerClick?: (eventId: string) => void;
   zoom?: number;
+  interactive?: boolean;
 }
 
 export default function Map({ events, center, onMarkerClick, zoom }: MapProps) {
@@ -54,20 +55,16 @@ export default function Map({ events, center, onMarkerClick, zoom }: MapProps) {
     // Add new markers
     events.forEach(event => {
       if (event.latitude && event.longitude) {
-        const el = document.createElement('div');
-        el.className = 'marker';
-        el.style.width = '25px';
-        el.style.height = '25px';
-        el.style.backgroundImage = 'url(/marker.png)';
-        el.style.backgroundSize = 'cover';
-        el.style.cursor = 'pointer';
-
-        const marker = new mapboxgl.Marker(el)
+        // Create a default Mapbox marker (no custom element needed)
+        const marker = new mapboxgl.Marker({
+          color: '#3B82F6', // Tailwind blue-500 color
+          scale: 1.2, // Make it slightly larger
+        })
           .setLngLat([event.longitude, event.latitude])
           .addTo(map.current!);
 
         if (onMarkerClick) {
-          el.addEventListener('click', () => onMarkerClick(event.id));
+          marker.getElement().addEventListener('click', () => onMarkerClick(event.id));
         }
 
         markers.current.push(marker);
@@ -84,7 +81,7 @@ export default function Map({ events, center, onMarkerClick, zoom }: MapProps) {
       });
       map.current.fitBounds(bounds, { padding: 50 });
     }
-  }, [events, onMarkerClick]);
+  }, [events, map.current]);
 
   return (
     <div ref={mapContainer} className="w-full h-full" />

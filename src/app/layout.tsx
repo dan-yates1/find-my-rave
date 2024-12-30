@@ -10,11 +10,41 @@ import Footer from '@/components/Footer';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Find My Rave",
-  description: "Find the best raves near you!",
-  appleWebApp: {
-    title: "Find My Rave",
+  title: {
+    default: 'Find My Rave | Discover Electronic Music Events Near You',
+    template: '%s | Find My Rave'
   },
+  description: 'Discover the best electronic music events, raves, and festivals near you. Find tickets, lineup details, and venue information all in one place.',
+  keywords: ['rave', 'electronic music', 'events', 'festivals', 'EDM', 'techno', 'house music', 'dance music'],
+  openGraph: {
+    title: 'Find My Rave | Discover Electronic Music Events Near You',
+    description: 'Discover the best electronic music events, raves, and festivals near you.',
+    url: 'https://findmyrave.vercel.app',
+    siteName: 'Find My Rave',
+    images: [
+      {
+        url: '/og-image.jpg', // You'll need to create this image
+        width: 1200,
+        height: 630,
+      }
+    ],
+    locale: 'en_GB',
+    type: 'website',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: 'your-google-verification-code', // You'll get this from Google Search Console
+  }
 };
 
 export default function RootLayout({

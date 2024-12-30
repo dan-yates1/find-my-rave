@@ -20,9 +20,10 @@ interface EventCardProps {
     platform?: string;
   };
   onHover?: (id: string | null) => void;
+  initialIsBookmarked?: boolean;
 }
 
-export default function EventCard({ event, onHover }: EventCardProps) {
+export default function EventCard({ event, onHover, initialIsBookmarked }: EventCardProps) {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const { data: session } = useSession();
 

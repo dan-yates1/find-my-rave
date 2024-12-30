@@ -48,7 +48,7 @@ export default function BookmarkedEvents() {
         <EventCard 
           key={bookmark.eventId} 
           event={{
-            id: bookmark.event.id,
+            id: bookmark.eventId,
             title: bookmark.event.eventname,
             startDate: new Date(bookmark.event.startdate),
             endDate: new Date(bookmark.event.enddate),
@@ -66,6 +66,7 @@ export default function BookmarkedEvents() {
             createdAt: new Date(),
             updatedAt: new Date()
           }} 
+          initialIsBookmarked={true}
         />
       ))}
     </div>

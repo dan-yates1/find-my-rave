@@ -73,27 +73,13 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login-register",
     error: "/login-register",
   },
+  debug: process.env.NODE_ENV === 'development',
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account, profile, email, credentials }) {
       try {
-        if (account?.provider === "google") {
-          const existingUser = await prisma.user.findUnique({
-            where: { email: user.email! },
-          });
-
-          if (existingUser) {
-            await prisma.user.update({
-              where: { id: existingUser.id },
-              data: {
-                name: user.name,
-                image: user.image,
-              },
-            });
-          }
-        }
         return true;
       } catch (error) {
-        console.error("Error in signIn callback:", error);
+        console.error("Sign-in error:", error);
         return false;
       }
     },

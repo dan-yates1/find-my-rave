@@ -5,6 +5,7 @@ import Navbar from "@/components/navbar/Navbar";
 import SessionProviderWrapper from "@/components/SessionProviderWrapper";
 import QueryProvider from "@/providers/QueryProvider";
 import { Analytics } from "@vercel/analytics/react";
+import Footer from '@/components/Footer';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -51,6 +52,7 @@ export default function RootLayout({
                   {children}
                   <Analytics />
                 </main>
+                <Footer />
               </div>
             </SessionProviderWrapper>
           </QueryProvider>

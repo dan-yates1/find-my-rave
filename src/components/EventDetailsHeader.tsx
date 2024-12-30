@@ -21,7 +21,7 @@ const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
     <div className="relative">
       {/* Event Image */}
       <div 
-        className="relative w-full h-[400px]"
+        className="relative w-full h-[400px] overflow-hidden"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -29,7 +29,7 @@ const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
           src={event.imageUrl || '/event-placeholder.jpg'}
           alt={event.title}
           fill
-          className="object-cover"
+          className="object-cover blur-md scale-105"
             
           priority
         />

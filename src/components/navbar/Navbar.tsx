@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, update: updateSession } = useSession();
+  const [userImage, setUserImage] = useState(session?.user?.image);
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -48,6 +49,31 @@ export default function Navbar() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const fetchUserImage = async () => {
+      if (session?.user?.email) {
+        const response = await fetch(`/api/user/profile?email=${session.user.email}`);
+        if (response.ok) {
+          const userData = await response.json();
+          setUserImage(userData.image);
+          if (userData.image !== session.user.image) {
+            await updateSession({
+              ...session.user,
+              image: userData.image,
+            });
+          }
+        }
+      }
+    };
+
+    fetchUserImage();
+  }, [session?.user?.email]);
+
+  // Update local state when session changes
+  useEffect(() => {
+    setUserImage(session?.user?.image);
+  }, [session?.user?.image]);
 
   const ProfileMenu = () => (
     <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-50">
@@ -120,20 +146,25 @@ export default function Navbar() {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={handleProfileClick}
-                  className="flex items-center space-x-2 ml-2 text-blue-600 hover:text-blue-700"
+                  className="flex items-center space-x-2 ml-2 text-gray-500 hover:text-gray-600 bg-gray-200 rounded-full p-3"
                 >
-                  {session?.user?.image ? (
-                    <Image
-                      src={session.user.image}
-                      alt="Profile"
-                      width={40}
-                      height={40}
-                      className="rounded-full"
-                    />
+                  {session?.user ? (
+                    userImage ? (
+                      <Image
+                        src={userImage}
+                        alt="Profile"
+                        width={40}
+                        height={40}
+                        className="rounded-full"
+                        priority={true}
+                      />
+                    ) : (
+                      <div className="w-[40px] h-[40px] rounded-full bg-gray-200 flex items-center justify-center">
+                        <UserIcon className="w-6 h-6 text-gray-500" />
+                      </div>
+                    )
                   ) : (
-                    <div className="w-[40px] h-[40px] rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
-                      <UserIcon className="w-6 h-6" />
-                    </div>
+                    <UserIcon className="w-6 h-6" />
                   )}
                 </button>
                 

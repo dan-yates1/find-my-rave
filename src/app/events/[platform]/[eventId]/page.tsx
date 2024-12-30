@@ -241,12 +241,17 @@ export default async function EventDetailsPage({ params }: EventDetailsPageProps
                     </span>
 
                     {/* Price */}
-                    <div>
+                    {/* <div>
                       <h3 className="text-xl font-semibold mb-2">Price</h3>
                       <p className="text-3xl font-bold text-gray-900">
-                        {event.price > 0 ? `£${event.price.toFixed(2)}` : 'Free'}
+                        {event.price === null || event.price === undefined ? 
+                          'Price not available' : 
+                          event.price === 0 ? 
+                            'Free' : 
+                            `£${event.price.toFixed(2)}`
+                        }
                       </p>
-                    </div>
+                    </div> */}
 
                     {/* Opening Times */}
                     {event.openingtimes?.doorsopen && (

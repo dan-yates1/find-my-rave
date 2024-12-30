@@ -9,6 +9,7 @@ import BookmarkedEvents from "@/components/profile/BookmarkedEvents";
 import Image from "next/image";
 import EventHistory from "@/components/profile/EventHistory";
 import AccountSettings from "@/components/profile/AccountSettings";
+import { useRouter } from "next/navigation";
 
 interface ProfileContentProps {
   user: User;
@@ -19,7 +20,8 @@ export default function ProfileContent({ user }: ProfileContentProps) {
   const [imageUrl, setImageUrl] = useState(user.image || "");
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { update: updateSession } = useSession();
+  const { update: updateSession, data: session } = useSession();
+  const router = useRouter();
 
   const handleImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -44,10 +46,14 @@ export default function ProfileContent({ user }: ProfileContentProps) {
       const data = await response.json();
       setImageUrl(data.imageUrl);
 
-      // Update the session with the new image URL
+      // Update the session
       await updateSession({
+        ...session?.user,
         image: data.imageUrl,
       });
+
+      // Force a hard refresh of the page to update all components
+      window.location.reload();
     } catch (error) {
       console.error("Error uploading image:", error);
     } finally {

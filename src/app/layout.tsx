@@ -44,7 +44,47 @@ export const metadata: Metadata = {
   },
   verification: {
     google: 'your-google-verification-code', // You'll get this from Google Search Console
-  }
+  },
+  icons: {
+    icon: [
+      {
+        url: '/icons/favicon-16x16.png',
+        sizes: '16x16',
+        type: 'image/png'
+      },
+      {
+        url: '/icons/favicon-32x32.png',
+        sizes: '32x32',
+        type: 'image/png'
+      }
+    ],
+    apple: [
+      {
+        url: '/icons/apple-touch-icon.png',
+        sizes: '180x180',
+        type: 'image/png'
+      }
+    ],
+    other: [
+      {
+        rel: 'mask-icon',
+        url: '/icons/safari-pinned-tab.svg',
+        color: '#2563eb'
+      }
+    ]
+  },
+  manifest: '/site.webmanifest',
+  applicationName: 'Find My Rave',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Find My Rave'
+  },
+  formatDetection: {
+    telephone: false
+  },
+  themeColor: '#2563eb',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
 };
 
 export default function RootLayout({
@@ -73,6 +113,9 @@ export default function RootLayout({
           href="/favicon-16x16.png"
         />
         <meta name="apple-mobile-web-app-capable" content="no" />
+        <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#2563eb" />
+        <meta name="msapplication-TileColor" content="#2563eb" />
+        <meta name="theme-color" content="#ffffff" />
         <body className={`${inter.className} bg-white text-black`}>
           <QueryProvider>
             <SessionProviderWrapper>

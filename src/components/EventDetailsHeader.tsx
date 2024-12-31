@@ -36,7 +36,7 @@ const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
         
         
         {/* Bookmark Button - Positioned in top right */}
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-10 sm:top-4 right-4 z-10">
           <BookmarkButton 
             eventId={event.id}
             variant="detail"

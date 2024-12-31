@@ -9,6 +9,7 @@ import { FunnelIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useQuery } from '@tanstack/react-query';
 import { Event } from "@prisma/client";
 import { GENRE_MAPPINGS } from '@/lib/constants';
+import { useRouter } from "next/navigation";
 
 // Extend the Event type to include platform
 interface ExtendedEvent extends Event {
@@ -62,6 +63,7 @@ const FindEventsPageContent = () => {
   const [isFiltersVisible, setIsFiltersVisible] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const router = useRouter();
 
   // Update queries when URL params change or filters change
   const { data, isLoading, error } = useQuery<EventsResponse>({
@@ -386,6 +388,35 @@ const FindEventsPageContent = () => {
                   <p className="text-gray-600">
                     An error occurred while loading events.
                   </p>
+                </div>
+              ) : data?.events?.length === 0 ? (
+                <div className="col-span-full text-center py-12">
+                  <div className="max-w-md mx-auto">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      No events found
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      We couldn&apos;t find any events matching your criteria. Try adjusting your filters or search terms.
+                    </p>
+                    <button
+                      onClick={() => {
+                        // Reset filters
+                        setFilters({
+                          platform: '',
+                          dateRange: '',
+                          priceRange: '',
+                          customDate: '',
+                          sortBy: 'date',
+                          genre: ''
+                        });
+                        // Clear search params
+                        router.push('/find-events');
+                      }}
+                      className="text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Clear all filters
+                    </button>
+                  </div>
                 </div>
               ) : (
                 data?.events?.map((event: ExtendedEvent) => (

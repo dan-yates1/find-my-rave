@@ -10,6 +10,7 @@ import {
   UserCircleIcon,
   MapIcon,
   PlusCircleIcon,
+  UserIcon,
 } from "@heroicons/react/24/outline";
 import SearchBar from "./SearchBar";
 import { useRouter, usePathname } from "next/navigation";
@@ -124,6 +125,18 @@ export default function MobileNav() {
                       <MapIcon className="h-5 w-5 text-gray-500" />
                       <span className="text-gray-700">Find Events</span>
                     </Link>
+
+                    {/* Profile Link - Only show when signed in */}
+                    {session?.user && (
+                      <Link
+                        href="/profile"
+                        className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-50"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <UserCircleIcon className="h-5 w-5 text-gray-500" />
+                        <span className="text-gray-700">View Profile</span>
+                      </Link>
+                    )}
                   </nav>
 
                   {/* Sign Out Button */}

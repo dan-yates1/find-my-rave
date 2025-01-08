@@ -11,22 +11,44 @@ export const EVENT_TYPES = [
 
 export type EventType = typeof EVENT_TYPES[number]; 
 
-export const GENRE_MAPPINGS = {
-  // Main Electronic Music Genres
-  CLUB: { label: "Club Night", genres: ["House", "Techno", "General Club Night"] },
-  BASS: { label: "Bass Music", genres: ["Drum & Bass", "Dubstep", "Garage", "Grime"] },
-  DNB: { label: "Drum & Bass", genres: ["Drum & Bass", "Jungle", "Breakbeat"] },
-  ELEC: { label: "Electronic", genres: ["Electronic", "EDM"] },
-  TECH: { label: "Techno", genres: ["Techno", "Industrial", "Minimal"] },
-  HOUSE: { label: "House", genres: ["House", "Deep House", "Tech House"] },
-  TRANCE: { label: "Trance", genres: ["Trance", "Progressive"] },
-  // Festival and Live categories
-  FEST: { label: "Festival", genres: ["Multi-Genre", "Festival"] },
-  LIVE: { label: "Live Music", genres: ["Live Electronic", "Live Performance"] },
-  // Additional specific genres
-  GARAGE: { label: "UK Garage", genres: ["UK Garage", "Speed Garage", "2-Step"] },
-  HARD: { label: "Hardcore", genres: ["Hardcore", "Hard Dance", "Hardstyle"] }
-} as const;
+export const GENRE_MAPPINGS: Record<string, { label: string; keywords: string[] }> = {
+  'house': {
+    label: 'House',
+    keywords: ['house', 'deep house', 'tech house', 'progressive house', 'funky house', 'acid house']
+  },
+  'techno': {
+    label: 'Techno',
+    keywords: ['techno', 'industrial', 'minimal', 'hard techno', 'detroit techno', 'acid techno']
+  },
+  'dnb': {
+    label: 'Drum & Bass',
+    keywords: ['drum and bass', 'drum & bass', 'dnb', 'd&b', 'jungle', 'liquid', 'neurofunk', 'drum & bass', 'dnb', 'd&b', 'bass', 'liquid', 'drum', 'drum n bass']
+  },
+  'trance': {
+    label: 'Trance',
+    keywords: ['trance', 'psytrance', 'progressive trance', 'uplifting trance', 'goa']
+  },
+  'dubstep': {
+    label: 'Dubstep',
+    keywords: ['dubstep', 'brostep', 'riddim', 'bass music']
+  },
+  'garage': {
+    label: 'Garage',
+    keywords: ['garage', 'uk garage', 'ukg', '2-step', 'speed garage']
+  },
+  'hardstyle': {
+    label: 'Hardstyle',
+    keywords: ['hardstyle', 'hardcore', 'gabber', 'hard dance', 'rawstyle']
+  },
+  'disco': {
+    label: 'Disco',
+    keywords: ['disco', 'nu disco', 'italo disco', 'funk']
+  },
+  'experimental': {
+    label: 'Experimental',
+    keywords: ['experimental', 'idm', 'glitch', 'ambient', 'electronica']
+  }
+};
 
 export type GenreType = keyof typeof GENRE_MAPPINGS; 
 

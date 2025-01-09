@@ -53,7 +53,8 @@ export default function BookmarkButton({
   return (
     <button
       onClick={(e) => {
-        e.stopPropagation(); // Prevent event bubbling
+        e.preventDefault();  // Prevent Link navigation
+        e.stopPropagation(); // Stop event bubbling
         mutation.mutate();
       }}
       disabled={isLoading}

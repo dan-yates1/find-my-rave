@@ -48,7 +48,10 @@ export default function EventCard({ event, initialIsBookmarked = false }: EventC
   };
 
   return (
-    <div className="group h-full flex flex-col bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
+    <Link 
+      href={`/events/${platform}/${eventId}`}
+      className="group h-full flex flex-col bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200"
+    >
       <div className="relative aspect-[16/9] sm:aspect-[4/3] overflow-hidden">
         <Image
           src={imageUrl}
@@ -56,7 +59,13 @@ export default function EventCard({ event, initialIsBookmarked = false }: EventC
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-200"
         />
-        <div className="absolute top-2 right-2 z-10 bookmark-button opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div 
+          onClick={(e) => {
+            e.preventDefault(); // Prevent Link navigation
+            e.stopPropagation(); // Stop event bubbling
+          }} 
+          className="absolute top-2 right-2 z-10"
+        >
           <BookmarkButton
             eventId={eventId}
             initialIsBookmarked={initialIsBookmarked}
@@ -77,6 +86,6 @@ export default function EventCard({ event, initialIsBookmarked = false }: EventC
           {formattedDate} • {formattedTime}
         </p>
       </div>
-    </div>
+    </Link>
   );
 }

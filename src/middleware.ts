@@ -1,22 +1,13 @@
-import { withAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
+import NextAuth from "next-auth"
+import { authConfig } from "./auth"
 
-export default withAuth(
-  function middleware(req) {
-    // Temporarily commenting out admin role check
-    // const token = req.nextauth.token;
-    
-    // if (req.nextUrl.pathname.startsWith("/admin") && token?.role !== "admin") {
-    //   return NextResponse.redirect(new URL("/", req.url));
-    // }
-  },
-  {
-    callbacks: {
-      
-    },
-  }
-);
+export const { auth: middleware } = NextAuth(authConfig)
 
 export const config = {
-  matcher: ["/admin/:path*"],
-}; 
+  matcher: [
+    "/profile/:path*",
+    "/api/user/:path*",
+    "/api/bookmarks/:path*",
+    "/api/bookmarks/check/:path*",
+  ],
+} 

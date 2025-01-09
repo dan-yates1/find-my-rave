@@ -1,11 +1,43 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/auth";
+import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
+
+// GET all bookmarks or check specific bookmark
+export async function GET(req: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const bookmarks = await prisma.bookmark.findMany({
+      where: {
+        userId: session.user.email,
+      },
+      select: {
+        id: true,
+        eventId: true,
+        eventDetails: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    return NextResponse.json({ bookmarks });
+  } catch (error) {
+    console.error("Error fetching bookmarks:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch bookmarks" },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -18,7 +50,7 @@ export async function POST(req: Request) {
     const bookmark = await prisma.bookmark.create({
       data: {
         userId: session.user.email,
-        eventId,
+        eventId: eventId.toString(),
       },
     });
 
@@ -34,7 +66,7 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

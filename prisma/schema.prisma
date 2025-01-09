@@ -8,27 +8,24 @@ datasource db {
 }
 
 model Event {
-  id          String   @id @map("_id") @db.String
-  slug        String   @unique
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
   title       String
   description String?
   startDate   DateTime
   endDate     DateTime?
-  location    String
+  location    String?
+  imageUrl    String?
   latitude    Float?
   longitude   Float?
   link        String?
-  imageUrl    String?
-  price       Float?   @default(0)
-  eventType   String?  @default("other")
+  price       Float?
+  eventType   String?
+  slug        String?
+  approved    Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   platform    String?
-  approved    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
   userEvents  UserEvent[]
-  bookmarks   Bookmark[]
-
-  @@map("events")
 }
 
 model User {
@@ -99,12 +96,10 @@ model VerificationToken {
 }
 
 model Bookmark {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String
-  eventId   String   @db.String
-  createdAt DateTime @default(now())
-  event     Event    @relation(fields: [eventId], references: [id])
-
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String
+  eventId      String
+  createdAt    DateTime @default(now())
+  eventDetails Json?
   @@unique([userId, eventId])
-  @@map("bookmarks")
 }

@@ -1,55 +1,47 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import { PrismaClient } from "@prisma/client";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { authOptions } from "@/auth";
 
 const prisma = new PrismaClient();
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION!,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
-
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const formData = await req.formData();
-    const file = formData.get("image") as File;
-    
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
+
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Get bucket name from environment variables
-    const bucketName = process.env.AWS_S3_BUCKET_NAME;
-    if (!bucketName) {
-      throw new Error("AWS bucket name not configured");
-    }
+    // Configure S3 client
+    const s3Client = new S3Client({
+      region: process.env.AWS_REGION!,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
+    });
 
-    // Generate unique filename
-    const fileExtension = file.name.split(".").pop();
-    const fileName = `profile-images/${session.user.email}-${Date.now()}.${fileExtension}`;
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const fileKey = `profile-images/${session.user.email}/${Date.now()}-${file.name}`;
 
     // Upload to S3
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await s3.send(
+    await s3Client.send(
       new PutObjectCommand({
-        Bucket: bucketName,
-        Key: fileName,
-        Body: buffer,
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: fileKey,
+        Body: fileBuffer,
         ContentType: file.type,
       })
     );
 
-    const imageUrl = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+    const imageUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
 
     // Update user profile in database
     await prisma.user.update({

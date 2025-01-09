@@ -1,92 +1,69 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { BookmarkIcon } from '@heroicons/react/24/outline';
-import { BookmarkIcon as BookmarkIconSolid } from '@heroicons/react/24/solid';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface BookmarkButtonProps {
   eventId: string;
   initialIsBookmarked?: boolean;
-  size?: 'sm' | 'md' | 'lg';
-  variant?: 'default' | 'card' | 'detail';
+  variant?: 'default' | 'detail';
+  size?: 'default' | 'lg';
 }
 
 export default function BookmarkButton({ 
   eventId, 
   initialIsBookmarked = false,
-  size = 'md',
-  variant = 'default'
+  variant = 'default',
+  size = 'default'
 }: BookmarkButtonProps) {
-  const { data: session } = useSession();
-  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
 
-  // Use React Query to manage bookmark state
-  const { data: bookmarkStatus, isLoading } = useQuery({
-    queryKey: ['bookmarkStatus', eventId],
+  const { data: bookmarkData } = useQuery({
+    queryKey: ['bookmark', eventId],
     queryFn: async () => {
-      if (!session) return false;
       const response = await fetch(`/api/bookmarks/check/${eventId}`);
-      const data = await response.json();
-      return data.isBookmarked;
+      if (!response.ok) throw new Error('Failed to check bookmark status');
+      return response.json();
     },
-    initialData: initialIsBookmarked,
+    initialData: { isBookmarked: initialIsBookmarked },
   });
 
-  const handleBookmark = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!session) {
-      router.push('/login-register');
-      return;
-    }
-
-    try {
+  const mutation = useMutation({
+    mutationFn: async () => {
+      setIsLoading(true);
+      const method = bookmarkData.isBookmarked ? 'DELETE' : 'POST';
       const response = await fetch('/api/bookmarks', {
-        method: bookmarkStatus ? 'DELETE' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        method,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ eventId }),
       });
-
-      if (response.ok) {
-        // Invalidate relevant queries
-        queryClient.invalidateQueries({ queryKey: ['bookmarkStatus', eventId] });
-        queryClient.invalidateQueries({ queryKey: ['bookmarkedEvents'] });
-        queryClient.invalidateQueries({ queryKey: ['eventHistory'] });
-      }
-    } catch (error) {
-      console.error('Error toggling bookmark:', error);
-    }
-  };
-
-  const sizeClasses = {
-    sm: 'h-4 w-4',
-    md: 'h-5 w-5',
-    lg: 'h-6 w-6'
-  };
-
-  const variantClasses = {
-    default: 'bg-white/90 hover:bg-white shadow-sm',
-    card: 'bg-white/90 hover:bg-white/100',
-    detail: 'bg-gray-100 hover:bg-gray-200'
-  };
+      if (!response.ok) throw new Error('Failed to update bookmark');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookmark', eventId] });
+      queryClient.invalidateQueries({ queryKey: ['bookmarkedEvents'] });
+    },
+    onSettled: () => setIsLoading(false),
+  });
 
   return (
     <button
-      onClick={handleBookmark}
+      onClick={(e) => {
+        e.stopPropagation(); // Prevent event bubbling
+        mutation.mutate();
+      }}
       disabled={isLoading}
-      className={`rounded-full p-2 transition-colors ${variantClasses[variant]}`}
+      className="flex items-center gap-2 p-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      aria-label={bookmarkData.isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
     >
-      {bookmarkStatus ? (
-        <BookmarkIconSolid className={`${sizeClasses[size]} text-blue-600`} />
+      {bookmarkData.isBookmarked ? (
+        <BookmarkSolidIcon className="w-5 h-5 text-blue-600" />
       ) : (
-        <BookmarkIcon className={`${sizeClasses[size]} text-gray-600`} />
+        <BookmarkIcon className="w-5 h-5" />
       )}
     </button>
   );

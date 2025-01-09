@@ -1,61 +1,80 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/auth";
-import { PrismaClient } from "@prisma/client";
+import { auth } from "@/auth";
+import prisma from "@/lib/prisma";
 
-const prisma = new PrismaClient();
-
-export async function GET(request: Request) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function GET(req: Request) {
   try {
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userEvents = await prisma.userEvent.findMany({
-      where: { userId: user.id },
+    const { searchParams } = new URL(req.url);
+    const mode = searchParams.get('mode');
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
       include: {
-        event: true,
-      },
-      orderBy: {
-        createdAt: "desc",
+        userEvents: {
+          where: { status: 'saved' },
+          include: {
+            event: mode !== 'ids',
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
     });
 
-    const events = {
-      upcoming: userEvents
-        .filter(
-          (ue) =>
-            ue.status === "registered" &&
-            new Date(ue.event.startDate) > new Date()
-        )
-        .map((ue) => ue.event),
-      past: userEvents
-        .filter(
-          (ue) =>
-            ue.status === "registered" &&
-            new Date(ue.event.startDate) <= new Date()
-        )
-        .map((ue) => ue.event),
-      saved: userEvents
-        .filter((ue) => ue.status === "saved")
-        .map((ue) => ue.event),
-    };
+    if (mode === 'ids') {
+      const savedEventIds = user?.userEvents.map(ue => ue.eventId) || [];
+      return NextResponse.json({ savedEventIds });
+    }
 
-    return NextResponse.json(events);
+    const savedEvents = user?.userEvents.map(ue => ue.event) || [];
+    return NextResponse.json({ savedEvents });
   } catch (error) {
     console.error("Error fetching user events:", error);
     return NextResponse.json(
-      { error: "Error fetching user events" },
+      { error: "Failed to fetch user events" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { eventId, action, eventData } = await req.json();
+
+    if (action === 'save') {
+      await prisma.userEvent.create({
+        data: {
+          userId: session.user.email,
+          eventId: eventId.toString(),
+          status: 'saved',
+        },
+      });
+    } else if (action === 'unsave') {
+      await prisma.userEvent.deleteMany({
+        where: {
+          userId: session.user.email,
+          eventId: eventId.toString(),
+          status: 'saved',
+        },
+      });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error saving event:", error);
+    return NextResponse.json(
+      { error: "Failed to save event" },
       { status: 500 }
     );
   }

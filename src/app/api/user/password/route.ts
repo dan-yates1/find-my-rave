@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/auth";
+import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
-export async function POST(req: Request) {
+export async function PUT(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -15,14 +14,17 @@ export async function POST(req: Request) {
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
+      select: { password: true }
     });
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!user?.password) {
+      return NextResponse.json(
+        { error: "Cannot change password for OAuth accounts" },
+        { status: 400 }
+      );
     }
 
-    // Verify current password
-    const isValid = await bcrypt.compare(currentPassword, user.password!);
+    const isValid = await bcrypt.compare(currentPassword, user.password);
     if (!isValid) {
       return NextResponse.json(
         { error: "Current password is incorrect" },
@@ -30,20 +32,17 @@ export async function POST(req: Request) {
       );
     }
 
-    // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // Update password
     await prisma.user.update({
       where: { email: session.user.email },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword }
     });
 
     return NextResponse.json({ message: "Password updated successfully" });
   } catch (error) {
-    console.error("Error changing password:", error);
+    console.error("Error updating password:", error);
     return NextResponse.json(
-      { error: "Failed to change password" },
+      { error: "Failed to update password" },
       { status: 500 }
     );
   }

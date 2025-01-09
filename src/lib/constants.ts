@@ -11,44 +11,36 @@ export const EVENT_TYPES = [
 
 export type EventType = typeof EVENT_TYPES[number]; 
 
-export const GENRE_MAPPINGS: Record<string, { label: string; keywords: string[] }> = {
-  'house': {
+export const GENRE_MAPPINGS = {
+  house: {
     label: 'House',
-    keywords: ['house', 'deep house', 'tech house', 'progressive house', 'funky house', 'acid house']
+    keywords: ['house', 'deep house', 'tech house', 'progressive house'],
   },
-  'techno': {
+  techno: {
     label: 'Techno',
-    keywords: ['techno', 'industrial', 'minimal', 'hard techno', 'detroit techno', 'acid techno']
+    keywords: ['techno', 'industrial techno', 'minimal techno'],
   },
-  'dnb': {
+  dnb: {
     label: 'Drum & Bass',
-    keywords: ['drum and bass', 'drum & bass', 'dnb', 'd&b', 'jungle', 'liquid', 'neurofunk', 'drum & bass', 'dnb', 'd&b', 'bass', 'liquid', 'drum', 'drum n bass']
+    keywords: ['drum and bass', 'dnb', 'd&b', 'jungle', 'neurofunk'],
   },
-  'trance': {
+  trance: {
     label: 'Trance',
-    keywords: ['trance', 'psytrance', 'progressive trance', 'uplifting trance', 'goa']
+    keywords: ['trance', 'psytrance', 'progressive trance', 'uplifting trance'],
   },
-  'dubstep': {
+  dubstep: {
     label: 'Dubstep',
-    keywords: ['dubstep', 'brostep', 'riddim', 'bass music']
+    keywords: ['dubstep', 'brostep', 'riddim'],
   },
-  'garage': {
+  garage: {
     label: 'Garage',
-    keywords: ['garage', 'uk garage', 'ukg', '2-step', 'speed garage']
+    keywords: ['garage', 'uk garage', 'ukg', '2-step'],
   },
-  'hardstyle': {
+  hardstyle: {
     label: 'Hardstyle',
-    keywords: ['hardstyle', 'hardcore', 'gabber', 'hard dance', 'rawstyle']
+    keywords: ['hardstyle', 'hardcore', 'hard dance', 'gabber'],
   },
-  'disco': {
-    label: 'Disco',
-    keywords: ['disco', 'nu disco', 'italo disco', 'funk']
-  },
-  'experimental': {
-    label: 'Experimental',
-    keywords: ['experimental', 'idm', 'glitch', 'ambient', 'electronica']
-  }
-};
+} as const;
 
 export type GenreType = keyof typeof GENRE_MAPPINGS; 
 

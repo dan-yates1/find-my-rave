@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
 import { z } from "zod";
-import { GENRE_MAPPINGS, SKIDDLE_GENRE_MAPPING } from '@/lib/constants';
+import { GENRE_MAPPINGS, SKIDDLE_GENRE_MAPPING, SKIDDLE_GENRE_IDS } from '@/lib/constants';
 import { getLatLon } from "@/lib/utils";
 
 const SKIDDLE_API_BASE = "https://www.skiddle.com/api/v1";
@@ -15,6 +15,24 @@ const searchParamsSchema = z.object({
   dateRange: z.string().optional(),
   customDate: z.string().optional(),
 });
+
+// First, let's create a mapping of our genres to Skiddle genre IDs
+const GENRE_TO_SKIDDLE_IDS: Record<string, string[]> = {
+  house: ['1', '10', '14', '22', '102', '108'], // House genres
+  techno: ['9', '111'], // Techno and Minimal
+  dnb: ['8', '80'], // DnB and Jungle
+  trance: ['2', '17', '28'], // Trance variants
+  dubstep: ['65'], // Dubstep
+  garage: ['3'], // UK Garage
+  hardstyle: ['18', '81'], // Hardstyle/Hardcore
+  electronic: ['61', '79'], // General electronic/EDM
+} as const;
+
+// Add this interface at the top of the file
+interface SkiddleGenre {
+  genreid: string;
+  name: string;
+}
 
 export async function GET(req: Request) {
   try {
@@ -31,11 +49,14 @@ export async function GET(req: Request) {
     const customDate = validatedParams.customDate;
     const genre = searchParams.get('genre');
 
+    // Increase the limit when fetching to account for filtering
+    const apiLimit = genre && genre !== 'all' ? limit * 3 : limit; // Fetch more events if filtering
+    
     let params = new URLSearchParams({
       api_key: process.env.SKIDDLE_API_KEY!,
       keyword,
       offset: offset.toString(),
-      limit: limit.toString(),
+      limit: apiLimit.toString(), // Use increased limit
       order: 'trending',
       description: '1',
       ticketsavailable: '1',
@@ -106,54 +127,74 @@ export async function GET(req: Request) {
       }
     }
 
-    // Add genre filtering if specified
-    if (genre && GENRE_MAPPINGS[genre as keyof typeof GENRE_MAPPINGS]) {
-      // Find all relevant Skiddle eventcodes for this genre
-      const relevantEventCodes = Object.entries(SKIDDLE_GENRE_MAPPING)
-        .filter(([_, genres]) => (genres as readonly string[]).includes(genre as string))
-        .map(([code]) => code);
-
-      if (relevantEventCodes.length > 0) {
-        params.append('eventcode', relevantEventCodes.join(','));
-      }
-      
-      // Add additional genre-specific parameters
-      if (genre === 'DNB') {
-        params.append('keyword', params.get('keyword') + ' "drum and bass" dnb');
-      }
+    // Add genre filtering with logging
+    if (genre && SKIDDLE_GENRE_IDS[genre as keyof typeof SKIDDLE_GENRE_IDS]) {
+      const genreIds = SKIDDLE_GENRE_IDS[genre as keyof typeof SKIDDLE_GENRE_IDS];
+      params.append('genreids', genreIds.join(','));
+      console.log('Filtering by genre:', genre);
+      console.log('Using genre IDs:', genreIds);
     }
 
-    console.log('Calling Skiddle API with params:', params.toString());
-    const response = await axios.get(`${SKIDDLE_API_BASE}/events/search?${params.toString()}`);
-    
-    // Transform Skiddle response to match your app's format
-    const events = response.data.results.map((event: any) => ({
-      id: event.id,
-      title: event.eventname,
-      description: event.description || '',
-      startDate: event.startdate,
-      endDate: event.enddate || event.startdate,
-      location: event.venue.name,
-      town: event.venue.town,
-      latitude: parseFloat(event.venue.latitude),
-      longitude: parseFloat(event.venue.longitude),
-      link: event.link,
-      imageUrl: event.largeimageurl || event.imageurl,
-      price: event.entryprice || 0,
-      platform: 'skiddle',
-      approved: true,
-      // Add new fields from description=1 parameter
-      artists: event.artists || [],
-      genres: event.genres || [],
-      minAge: event.MinAge || null,
-    }));
+    // Log the final URL being called
+    const url = `${SKIDDLE_API_BASE}/events/search?${params.toString()}`;
+    console.log('Calling Skiddle API:', url);
 
+    const response = await axios.get(url);
+    console.log('Skiddle response:', response.data);
+
+    // Filter events based on genre if specified
+    let filteredEvents = response.data.results;
+    if (genre && genre !== 'all' && GENRE_TO_SKIDDLE_IDS[genre as keyof typeof GENRE_TO_SKIDDLE_IDS]) {
+      const validGenreIds = GENRE_TO_SKIDDLE_IDS[genre as keyof typeof GENRE_TO_SKIDDLE_IDS];
+      
+      filteredEvents = response.data.results.filter((event: any) => 
+        event.genres?.some((eventGenre: SkiddleGenre) => 
+          validGenreIds.includes(eventGenre.genreid)
+        )
+      );
+      
+      console.log(`Filtered from ${response.data.results.length} to ${filteredEvents.length} events for genre ${genre}`);
+    }
+
+    // Calculate pagination values
+    const totalFilteredCount = genre && genre !== 'all' 
+      ? filteredEvents.length 
+      : response.data.totalcount;
+
+    const totalPages = Math.max(1, Math.ceil(totalFilteredCount / limit));
+    const currentPage = Math.min(Math.floor(offset / limit) + 1, totalPages);
+
+    // Calculate the correct slice for the current page
+    const startIndex = (currentPage - 1) * limit;
+    const endIndex = Math.min(startIndex + limit, filteredEvents.length);
+    const paginatedEvents = filteredEvents.slice(startIndex, endIndex);
+
+    // Transform and return events
     return NextResponse.json({
-      events,
-      hasMore: offset + limit < response.data.totalcount,
-      total: response.data.totalcount,
-      currentPage: Math.floor(offset / limit) + 1,
-      totalPages: Math.ceil(response.data.totalcount / limit),
+      events: paginatedEvents.map((event: any) => ({
+        id: event.id,
+        title: event.eventname,
+        description: event.description || '',
+        startDate: event.startdate,
+        endDate: event.enddate || event.startdate,
+        location: event.venue.name,
+        town: event.venue.town,
+        latitude: parseFloat(event.venue.latitude),
+        longitude: parseFloat(event.venue.longitude),
+        link: event.link,
+        imageUrl: event.largeimageurl || event.imageurl,
+        price: event.entryprice || 0,
+        platform: 'skiddle',
+        approved: true,
+        // Add new fields from description=1 parameter
+        artists: event.artists || [],
+        genres: event.genres || [],
+        minAge: event.MinAge || null,
+      })),
+      hasMore: currentPage < totalPages,
+      total: totalFilteredCount,
+      currentPage,
+      totalPages,
       fromCache: false,
     });
 

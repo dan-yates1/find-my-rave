@@ -42,6 +42,12 @@ const dateFilterOptions = [
   { label: 'Custom date', value: 'custom' }
 ];
 
+const fetchEvents = async (searchParams: URLSearchParams) => {
+  const response = await fetch(`/api/events/search?${searchParams.toString()}`);
+  if (!response.ok) throw new Error('Failed to fetch events');
+  return response.json();
+};
+
 const FindEventsPageContent = () => {
   const searchParams = useSearchParams();
   const eventQuery = searchParams.get("event") || "";
@@ -67,22 +73,19 @@ const FindEventsPageContent = () => {
 
   // Update queries when URL params change or filters change
   const { data, isLoading, error } = useQuery<EventsResponse>({
-    queryKey: ['events', searchParams.toString(), filters, currentPage],
+    queryKey: ['events', filters, eventQuery, currentPage],
     queryFn: async () => {
       const params = new URLSearchParams({
-        event: eventQuery,
-        location: locationQuery,
+        ...(eventQuery && { event: eventQuery }),
+        ...(locationQuery && { location: locationQuery }),
+        ...(filters.dateRange && { dateRange: filters.dateRange }),
+        ...(filters.customDate && { customDate: filters.customDate }),
+        ...(filters.genre && filters.genre !== 'all' && { genre: filters.genre }),
         skip: ((currentPage - 1) * eventsPerPage).toString(),
         limit: eventsPerPage.toString(),
-        ...(filters.platform !== 'all' && { platform: filters.platform }),
-        ...(filters.dateRange !== 'all' && { dateRange: filters.dateRange }),
-        ...(filters.customDate && { customDate: filters.customDate }),
-        ...(filters.priceRange !== 'all' && { priceRange: filters.priceRange })
       });
 
-      const response = await fetch(`/api/events/search?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch events');
-      return response.json();
+      return fetchEvents(params);
     },
   });
 
@@ -426,7 +429,7 @@ const FindEventsPageContent = () => {
             </div>
 
             {/* Pagination */}
-            {data && data.totalPages > 1 && (
+            {data && data.total > 0 && (
               <div className="mt-8 flex justify-center gap-2">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
@@ -436,11 +439,11 @@ const FindEventsPageContent = () => {
                   Previous
                 </button>
                 <span className="px-4 py-2">
-                  Page {currentPage} of {data.totalPages}
+                  Page {currentPage} of {Math.max(1, data.totalPages)}
                 </span>
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === data.totalPages}
+                  disabled={currentPage >= data.totalPages}
                   className="px-4 py-2 border rounded-md disabled:opacity-50"
                 >
                   Next

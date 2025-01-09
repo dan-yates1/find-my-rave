@@ -50,3 +50,13 @@ export const SKIDDLE_GENRE_MAPPING = {
   'LIVE': ['LIVE', 'DNB', 'BASS'],
   'FEST': ['FEST'],
 } as const; 
+
+export const SKIDDLE_GENRE_IDS = {
+  house: ['1', '10', '14', '22', '102', '108'], // House, Deep House, Tech House, Funky House, Disco House, Soulful House
+  techno: ['9', '56'], // Techno, Minimal Techno
+  dnb: ['8', '80'], // Drum and Bass, Jungle
+  trance: ['2', '17', '28'], // Trance, Psy/GoaTrance, Hard Trance
+  dubstep: ['65'], // Dubstep
+  garage: ['3'], // UK Garage
+  hardstyle: ['18', '81'], // Hardcore/Hardstyle, Hard Dance
+} as const; 

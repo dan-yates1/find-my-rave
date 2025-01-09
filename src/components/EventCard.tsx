@@ -48,17 +48,13 @@ export default function EventCard({ event, initialIsBookmarked = false }: EventC
   };
 
   return (
-    <div 
-      onClick={handleCardClick}
-      className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer group"
-    >
-      <div className="relative aspect-[16/9]">
+    <div className="group h-full flex flex-col bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200">
+      <div className="relative aspect-[16/9] sm:aspect-[4/3] overflow-hidden">
         <Image
           src={imageUrl}
           alt={title}
           fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className="object-cover group-hover:scale-105 transition-transform duration-200"
         />
         <div className="absolute top-2 right-2 z-10 bookmark-button opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <BookmarkButton
@@ -68,23 +64,18 @@ export default function EventCard({ event, initialIsBookmarked = false }: EventC
         </div>
       </div>
 
-      <div className="p-4 flex flex-col h-[calc(100%-56.25%)]">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+      <div className="flex flex-col flex-grow p-3 sm:p-4">
+        <h3 className="font-semibold text-base sm:text-sm text-gray-900 mb-2 sm:mb-1 line-clamp-2 min-h-[2.5rem]">
           {title}
         </h3>
 
-        <div className="mt-auto pt-2 border-t border-gray-100">
-          <div className="flex items-center text-gray-500 text-sm">
-            <CalendarIcon className="w-4 h-4 mr-1" />
-            <span>
-              {formattedDate} • {formattedTime}
-            </span>
-          </div>
-          <div className="flex items-center text-gray-500 text-sm mt-1">
-            <MapPinIcon className="w-4 h-4 mr-1" />
-            <span className="truncate">{formattedLocation}</span>
-          </div>
-        </div>
+        <p className="text-gray-600 text-sm mb-2 line-clamp-1">
+          {formattedLocation}
+        </p>
+
+        <p className="text-gray-500 text-sm font-medium">
+          {formattedDate} • {formattedTime}
+        </p>
       </div>
     </div>
   );

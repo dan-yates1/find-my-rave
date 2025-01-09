@@ -18,7 +18,6 @@ Find My Rave is a modern web application designed to help electronic music enthu
 - **User Features**:
   - Bookmark favorite events
   - Personal profile management
-  - Event history tracking
   - Custom event preferences
 - **Interactive Maps**: Visualize event locations using Mapbox integration
 - **Responsive Design**: Optimized for all devices from mobile to desktop
@@ -86,7 +85,6 @@ AWS_REGION=
 AWS_S3_BUCKET_NAME=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-NEXTAUTH_URL=
 NEXTAUTH_SECRET=
 SKIDDLE_API_KEY=
 ```
@@ -123,7 +121,6 @@ The application includes several API endpoints:
 - Google OAuth integration
 - Event bookmarking
 - Profile customization
-- Event history tracking
 
 ### Maps Integration
 - Interactive venue locations

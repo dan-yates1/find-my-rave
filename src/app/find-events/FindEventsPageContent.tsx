@@ -5,10 +5,10 @@ import { useSearchParams } from "next/navigation";
 import EventCard from "@/components/EventCard";
 import SkeletonEventCard from "@/components/SkeletonEventCard";
 import { capitalizeFirstLetter } from "@/lib/utils";
-import { FunnelIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { useQuery } from '@tanstack/react-query';
+import { FunnelIcon, XMarkIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { useQuery } from "@tanstack/react-query";
 import { Event } from "@prisma/client";
-import { GENRE_MAPPINGS } from '@/lib/constants';
+import { GENRE_MAPPINGS } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 
 // Extend the Event type to include platform
@@ -21,7 +21,7 @@ interface Filters {
   dateRange?: string;
   priceRange?: string;
   customDate?: string;
-  sortBy?: 'date' | 'relevance';
+  sortBy?: "date" | "relevance";
   genre: string;
 }
 
@@ -34,17 +34,17 @@ interface EventsResponse {
 }
 
 const dateFilterOptions = [
-  { label: 'Any time', value: 'all' },
-  { label: 'Today', value: 'today' },
-  { label: 'Tomorrow', value: 'tomorrow' },
-  { label: 'This week', value: 'this-week' },
-  { label: 'This weekend', value: 'weekend' },
-  { label: 'Custom date', value: 'custom' }
+  { label: "Any time", value: "all" },
+  { label: "Today", value: "today" },
+  { label: "Tomorrow", value: "tomorrow" },
+  { label: "This week", value: "this-week" },
+  { label: "This weekend", value: "weekend" },
+  { label: "Custom date", value: "custom" },
 ];
 
 const fetchEvents = async (searchParams: URLSearchParams) => {
   const response = await fetch(`/api/events/search?${searchParams.toString()}`);
-  if (!response.ok) throw new Error('Failed to fetch events');
+  if (!response.ok) throw new Error("Failed to fetch events");
   return response.json();
 };
 
@@ -54,12 +54,12 @@ const FindEventsPageContent = () => {
   const locationQuery = searchParams.get("location") || "";
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Filters>({
-    platform: 'all',
-    dateRange: 'all',
-    priceRange: 'all',
-    customDate: '',
-    sortBy: 'date',
-    genre: 'all',
+    platform: "all",
+    dateRange: "all",
+    priceRange: "all",
+    customDate: "",
+    sortBy: "date",
+    genre: "all",
   });
   const [allEvents, setAllEvents] = useState<ExtendedEvent[]>([]);
   const [displayedEvents, setDisplayedEvents] = useState<ExtendedEvent[]>([]);
@@ -71,16 +71,33 @@ const FindEventsPageContent = () => {
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const router = useRouter();
 
+  // Add new state for pending filters
+  const [pendingFilters, setPendingFilters] = useState<Filters>({
+    platform: "all",
+    dateRange: "all",
+    priceRange: "all",
+    customDate: "",
+    sortBy: "date",
+    genre: "all",
+  });
+
+  // Add new state for expanded sections
+  const [expandedSections, setExpandedSections] = useState({
+    date: true,
+    genre: true,
+  });
+
   // Update queries when URL params change or filters change
   const { data, isLoading, error } = useQuery<EventsResponse>({
-    queryKey: ['events', filters, eventQuery, currentPage],
+    queryKey: ["events", filters, eventQuery, currentPage],
     queryFn: async () => {
       const params = new URLSearchParams({
         ...(eventQuery && { event: eventQuery }),
         ...(locationQuery && { location: locationQuery }),
         ...(filters.dateRange && { dateRange: filters.dateRange }),
         ...(filters.customDate && { customDate: filters.customDate }),
-        ...(filters.genre && filters.genre !== 'all' && { genre: filters.genre }),
+        ...(filters.genre &&
+          filters.genre !== "all" && { genre: filters.genre }),
         skip: ((currentPage - 1) * eventsPerPage).toString(),
         limit: eventsPerPage.toString(),
       });
@@ -108,26 +125,50 @@ const FindEventsPageContent = () => {
   // Handle "Show More" click
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleFilterChange = (key: keyof Filters, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+  // Update the filter handlers
+  const handlePendingFilterChange = (key: keyof Filters, value: string) => {
+    setPendingFilters(prev => ({
+      ...prev,
+      [key]: value,
+      // Reset customDate if dateRange is changed and it's not custom
+      ...(key === 'dateRange' && value !== 'custom' ? { customDate: '' } : {})
+    }));
   };
 
-  // Update filters when date option changes
-  const handleDateFilterChange = (value: string) => {
-    if (value === 'custom') {
+  // Update date filter handler
+  const handlePendingDateFilterChange = (value: string) => {
+    if (value === "custom") {
       setShowCustomDate(true);
+      setPendingFilters(prev => ({
+        ...prev,
+        dateRange: value
+      }));
     } else {
       setShowCustomDate(false);
-      handleFilterChange('dateRange', value);
+      setPendingFilters(prev => ({
+        ...prev,
+        dateRange: value,
+        customDate: '' // Clear custom date when selecting a preset date range
+      }));
     }
   };
 
-  const titleText = eventQuery || locationQuery
-    ? `${capitalizeFirstLetter(eventQuery || "All")} events${locationQuery ? ` in ${locationQuery}` : ""}`
-    : "All events";
+  // Add apply filters function
+  const applyFilters = () => {
+    setFilters(pendingFilters);
+    setIsMobileFiltersOpen(false);
+    setCurrentPage(1); // Reset to first page when applying new filters
+  };
+
+  const titleText =
+    eventQuery || locationQuery
+      ? `${capitalizeFirstLetter(eventQuery || "All")} events${
+          locationQuery ? ` in ${locationQuery}` : ""
+        }`
+      : "All events";
 
   const toggleFilters = () => {
     setIsFiltersVisible(!isFiltersVisible);
@@ -135,26 +176,48 @@ const FindEventsPageContent = () => {
 
   useEffect(() => {
     if (data?.events) {
-      console.log('Events data:', data.events);
+      console.log("Events data:", data.events);
     }
   }, [data]);
+
+  // Add toggle function
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  // Add reset filters function at the component level
+  const resetFilters = () => {
+    setPendingFilters({
+      platform: "all",
+      dateRange: "all",
+      priceRange: "all",
+      customDate: "",
+      sortBy: "date",
+      genre: "all",
+    });
+    setShowCustomDate(false);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile filter dialog */}
       <div
         className={`fixed inset-0 bg-black bg-opacity-25 z-40 transition-opacity duration-300 ${
-          isMobileFiltersOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          isMobileFiltersOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setIsMobileFiltersOpen(false)}
       />
-      
+
       <div
-        className={`fixed inset-x-0 bottom-0 z-50 transform transition-transform duration-300 ease-in-out ${
-          isMobileFiltersOpen ? 'translate-y-0' : 'translate-y-full'
+        className={`fixed inset-y-0 left-0 z-50 w-[85%] max-w-md transform transition-transform duration-300 ease-in-out ${
+          isMobileFiltersOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="bg-white rounded-t-3xl shadow-lg max-h-[85vh] overflow-y-auto">
+        <div className="h-full bg-white flex flex-col">
+          {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
             <h2 className="text-lg font-semibold">Filters</h2>
             <button
@@ -164,96 +227,131 @@ const FindEventsPageContent = () => {
               <XMarkIcon className="w-6 h-6" />
             </button>
           </div>
-          
-          <div className="p-4 space-y-6">
-            {/* Date Filter */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                Date
-              </h3>
-              <div className="space-y-3">
-                {dateFilterOptions.map((option) => (
-                  <label
-                    key={option.value}
-                    className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
-                  >
-                    <input
-                      type="radio"
-                      name="dateFilter"
-                      value={option.value}
-                      checked={filters.dateRange === option.value}
-                      onChange={(e) => {
-                        handleDateFilterChange(e.target.value);
-                      }}
-                      className="text-blue-600 focus:ring-blue-500 h-4 w-4"
-                    />
-                    <span className="text-sm">{option.label}</span>
-                  </label>
-                ))}
-              </div>
-              
-              {/* Custom Date Input */}
-              {showCustomDate && (
-                <input
-                  type="date"
-                  value={filters.customDate}
-                  onChange={(e) => handleFilterChange('customDate', e.target.value)}
-                  className="mt-3 w-full rounded-md border-gray-200 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              )}
-            </div>
 
-            {/* Genre Filter */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                Genre
-              </h3>
-              <div className="space-y-3">
-                <label className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2">
-                  <input
-                    type="radio"
-                    name="genreFilter"
-                    value="all"
-                    checked={filters.genre === 'all'}
-                    onChange={(e) => handleFilterChange('genre', e.target.value)}
-                    className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+          {/* Filters Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4 space-y-6">
+              {/* Date Filter */}
+              <div className="space-y-4">
+                <button
+                  onClick={() => toggleSection('date')}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                    Date
+                  </h3>
+                  <ChevronDownIcon 
+                    className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                      expandedSections.date ? 'transform rotate-180' : ''
+                    }`}
                   />
-                  <span className="text-sm">All Genres</span>
-                </label>
-                {Object.entries(GENRE_MAPPINGS).map(([code, { label }]) => (
-                  <label
-                    key={code}
-                    className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
-                  >
-                    <input
-                      type="radio"
-                      name="genreFilter"
-                      value={code}
-                      checked={filters.genre === code}
-                      onChange={(e) => handleFilterChange('genre', e.target.value)}
-                      className="text-blue-600 focus:ring-blue-500 h-4 w-4"
-                    />
-                    <span className="text-sm">{label}</span>
-                  </label>
-                ))}
+                </button>
+                
+                {expandedSections.date && (
+                  <div className="space-y-3 pt-2">
+                    {dateFilterOptions.map((option) => (
+                      <label
+                        key={option.value}
+                        className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
+                      >
+                        <input
+                          type="radio"
+                          name="dateFilter-mobile"
+                          value={option.value}
+                          checked={pendingFilters.dateRange === option.value}
+                          onChange={(e) => handlePendingDateFilterChange(e.target.value)}
+                          className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                        />
+                        <span className="text-sm">{option.label}</span>
+                      </label>
+                    ))}
+                    
+                    {/* Custom Date Input */}
+                    {showCustomDate && (
+                      <input
+                        type="date"
+                        value={pendingFilters.customDate}
+                        onChange={(e) => handlePendingFilterChange("customDate", e.target.value)}
+                        className="mt-3 w-full rounded-md border-gray-200 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Genre Filter */}
+              <div className="space-y-4">
+                <button
+                  onClick={() => toggleSection('genre')}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                    Genre
+                  </h3>
+                  <ChevronDownIcon 
+                    className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                      expandedSections.genre ? 'transform rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                
+                {expandedSections.genre && (
+                  <div className="space-y-3 pt-2">
+                    <label className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2">
+                      <input
+                        type="radio"
+                        name="genreFilter-mobile"
+                        value="all"
+                        checked={pendingFilters.genre === "all"}
+                        onChange={(e) => handlePendingFilterChange("genre", e.target.value)}
+                        className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                      />
+                      <span className="text-sm">All Genres</span>
+                    </label>
+                    {Object.entries(GENRE_MAPPINGS).map(([code, { label }]) => (
+                      <label
+                        key={code}
+                        className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
+                      >
+                        <input
+                          type="radio"
+                          name="genreFilter-mobile"
+                          value={code}
+                          checked={pendingFilters.genre === code}
+                          onChange={(e) => handlePendingFilterChange("genre", e.target.value)}
+                          className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                        />
+                        <span className="text-sm">{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
+          </div>
 
-            {/* Apply Filters Button */}
-            <div className="sticky bottom-0 bg-white p-4 border-t">
+          {/* Show Results Button - Fixed at bottom */}
+          <div className="border-t p-4 bg-white">
+            <div className="flex gap-3">
               <button
-                onClick={() => setIsMobileFiltersOpen(false)}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+                onClick={resetFilters}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
               >
-                Apply Filters
+                Reset Filters
+              </button>
+              <button
+                onClick={applyFilters}
+                className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+              >
+                Show Results
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile filter button */}
-      <div className="lg:hidden fixed bottom-6 right-6 z-30">
+      {/* Update mobile filter toggle button position */}
+      <div className="lg:hidden fixed bottom-6 left-6 z-30">
         <button
           onClick={() => setIsMobileFiltersOpen(true)}
           className="bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
@@ -267,11 +365,15 @@ const FindEventsPageContent = () => {
         <div className={`flex gap-8`}>
           {/* Desktop Filters */}
           {isFiltersVisible && (
-            <div className="hidden lg:block w-72 flex-shrink-0">
-              <div className="sticky top-24">
-                <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-                  {/* Desktop Filter Toggle */}
-                  <div className="flex items-center justify-between mb-4">
+            <div 
+              className={`fixed inset-y-0 right-0 w-80 bg-white shadow-lg transform transition-transform duration-300 ease-in-out z-50 ${
+                isFiltersVisible ? 'translate-x-0' : 'translate-x-full'
+              }`}
+            >
+              <div className="h-full flex flex-col">
+                {/* Header */}
+                <div className="p-6 border-b">
+                  <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold">Filters</h2>
                     <button
                       onClick={() => setIsFiltersVisible(false)}
@@ -280,85 +382,140 @@ const FindEventsPageContent = () => {
                       <XMarkIcon className="w-5 h-5" />
                     </button>
                   </div>
+                </div>
 
-                  {/* Filter Content */}
+                {/* Filters Content - Scrollable */}
+                <div className="flex-1 overflow-y-auto p-6">
                   <div className="space-y-6">
                     {/* Date Filter */}
                     <div className="space-y-4">
-                      <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                        Date
-                      </h3>
-                      <div className="space-y-3">
-                        {dateFilterOptions.map((option) => (
-                          <label
-                            key={option.value}
-                            className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
-                          >
-                            <input
-                              type="radio"
-                              name="dateFilter"
-                              value={option.value}
-                              checked={filters.dateRange === option.value}
-                              onChange={(e) => {
-                                handleDateFilterChange(e.target.value);
-                              }}
-                              className="text-blue-600 focus:ring-blue-500 h-4 w-4"
-                            />
-                            <span className="text-sm">{option.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                      
-                      {/* Custom Date Input */}
-                      {showCustomDate && (
-                        <input
-                          type="date"
-                          value={filters.customDate}
-                          onChange={(e) => handleFilterChange('customDate', e.target.value)}
-                          className="mt-3 w-full rounded-md border-gray-200 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500"
+                      <button
+                        onClick={() => toggleSection('date')}
+                        className="flex items-center justify-between w-full text-left"
+                      >
+                        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                          Date
+                        </h3>
+                        <ChevronDownIcon 
+                          className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                            expandedSections.date ? 'transform rotate-180' : ''
+                          }`}
                         />
+                      </button>
+                      
+                      {expandedSections.date && (
+                        <div className="space-y-3 pt-2">
+                          {dateFilterOptions.map((option) => (
+                            <label
+                              key={option.value}
+                              className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
+                            >
+                              <input
+                                type="radio"
+                                name="dateFilter-desktop"
+                                value={option.value}
+                                checked={pendingFilters.dateRange === option.value}
+                                onChange={(e) => handlePendingDateFilterChange(e.target.value)}
+                                className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                              />
+                              <span className="text-sm">{option.label}</span>
+                            </label>
+                          ))}
+                          
+                          {/* Custom Date Input */}
+                          {showCustomDate && (
+                            <input
+                              type="date"
+                              value={pendingFilters.customDate}
+                              onChange={(e) => handlePendingFilterChange("customDate", e.target.value)}
+                              className="mt-3 w-full rounded-md border-gray-200 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500"
+                            />
+                          )}
+                        </div>
                       )}
                     </div>
 
                     {/* Genre Filter */}
                     <div className="space-y-4">
-                      <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                        Genre
-                      </h3>
-                      <div className="space-y-3">
-                        <label className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2">
-                          <input
-                            type="radio"
-                            name="genreFilter"
-                            value="all"
-                            checked={filters.genre === 'all'}
-                            onChange={(e) => handleFilterChange('genre', e.target.value)}
-                            className="text-blue-600 focus:ring-blue-500 h-4 w-4"
-                          />
-                          <span className="text-sm">All Genres</span>
-                        </label>
-                        {Object.entries(GENRE_MAPPINGS).map(([code, { label }]) => (
-                          <label
-                            key={code}
-                            className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
-                          >
+                      <button
+                        onClick={() => toggleSection('genre')}
+                        className="flex items-center justify-between w-full text-left"
+                      >
+                        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                          Genre
+                        </h3>
+                        <ChevronDownIcon 
+                          className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                            expandedSections.genre ? 'transform rotate-180' : ''
+                          }`}
+                        />
+                      </button>
+                      
+                      {expandedSections.genre && (
+                        <div className="space-y-3 pt-2">
+                          <label className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2">
                             <input
                               type="radio"
-                              name="genreFilter"
-                              value={code}
-                              checked={filters.genre === code}
-                              onChange={(e) => handleFilterChange('genre', e.target.value)}
+                              name="genreFilter-desktop"
+                              value="all"
+                              checked={pendingFilters.genre === "all"}
+                              onChange={(e) => handlePendingFilterChange("genre", e.target.value)}
                               className="text-blue-600 focus:ring-blue-500 h-4 w-4"
                             />
-                            <span className="text-sm">{label}</span>
+                            <span className="text-sm">All Genres</span>
                           </label>
-                        ))}
-                      </div>
+                          {Object.entries(GENRE_MAPPINGS).map(([code, { label }]) => (
+                            <label
+                              key={code}
+                              className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
+                            >
+                              <input
+                                type="radio"
+                                name="genreFilter-desktop"
+                                value={code}
+                                checked={pendingFilters.genre === code}
+                                onChange={(e) => handlePendingFilterChange("genre", e.target.value)}
+                                className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                              />
+                              <span className="text-sm">{label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
                     </div>
+                  </div>
+                </div>
+
+                {/* Footer with Buttons - Fixed */}
+                <div className="border-t p-4 bg-white">
+                  <div className="flex gap-3">
+                    <button
+                      onClick={resetFilters}
+                      className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      Reset Filters
+                    </button>
+                    <button
+                      onClick={() => {
+                        applyFilters();
+                        setIsFiltersVisible(false);
+                      }}
+                      className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Show Results
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Backdrop */}
+          {isFiltersVisible && (
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setIsFiltersVisible(false)}
+            />
           )}
 
           {/* Events Section */}
@@ -369,10 +526,12 @@ const FindEventsPageContent = () => {
               {!isFiltersVisible && (
                 <button
                   onClick={() => setIsFiltersVisible(true)}
-                  className="hidden lg:flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm text-gray-500 hover:text-gray-700"
+                  className="hidden lg:flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm 
+                  text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 
+                  font-medium group"
                 >
-                  <FunnelIcon className="w-5 h-5" />
-                  <span>Show Filters</span>
+                  <FunnelIcon className="w-5 h-5 text-gray-500 group-hover:text-gray-700 transition-colors" />
+                  <span>Filters</span>
                 </button>
               )}
             </div>
@@ -399,21 +558,22 @@ const FindEventsPageContent = () => {
                       No events found
                     </h3>
                     <p className="text-gray-600 mb-4">
-                      We couldn&apos;t find any events matching your criteria. Try adjusting your filters or search terms.
+                      We couldn&apos;t find any events matching your criteria.
+                      Try adjusting your filters or search terms.
                     </p>
                     <button
                       onClick={() => {
                         // Reset filters
                         setFilters({
-                          platform: '',
-                          dateRange: '',
-                          priceRange: '',
-                          customDate: '',
-                          sortBy: 'date',
-                          genre: ''
+                          platform: "",
+                          dateRange: "",
+                          priceRange: "",
+                          customDate: "",
+                          sortBy: "date",
+                          genre: "",
                         });
                         // Clear search params
-                        router.push('/find-events');
+                        router.push("/find-events");
                       }}
                       className="text-blue-600 hover:text-blue-700 font-medium"
                     >

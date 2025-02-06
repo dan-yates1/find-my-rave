@@ -41,137 +41,78 @@ export async function GET(req: Request) {
       Object.fromEntries(searchParams)
     );
 
-    const keyword = validatedParams.event || "";
-    const location = validatedParams.location || "";
-    const offset = validatedParams.skip || 0;
+    const page = parseInt(searchParams.get('page') || '1');
     const limit = Math.min(validatedParams.limit || 12, 24);
-    const dateRange = validatedParams.dateRange;
-    const customDate = validatedParams.customDate;
     const genre = searchParams.get('genre');
+    const location = validatedParams.location;
+    const offset = (page - 1) * limit;
 
-    // Increase the limit when fetching to account for filtering
-    const apiLimit = genre && genre !== 'all' ? limit * 3 : limit; // Fetch more events if filtering
-    
+    // For genre filtering, fetch more events to ensure full pages
+    const fetchLimit = genre && genre !== 'all' ? limit * 5 : limit;
+
     let params = new URLSearchParams({
       api_key: process.env.SKIDDLE_API_KEY!,
-      keyword,
       offset: offset.toString(),
-      limit: apiLimit.toString(), // Use increased limit
+      limit: fetchLimit.toString(),
       order: 'trending',
       description: '1',
       ticketsavailable: '1',
     });
 
-    // Add date filtering based on dateRange or customDate
-    if (dateRange || customDate) {
-      const today = new Date();
-      
-      if (customDate) {
-        // For custom date, use the exact date for both min and max
-        params.append('minDate', customDate);
-        params.append('maxDate', customDate);
-      } else {
-        switch (dateRange) {
-          case 'today': {
-            const todayStr = today.toISOString().split('T')[0];
-            params.append('minDate', todayStr);
-            params.append('maxDate', todayStr);
-            break;
-          }
-          case 'tomorrow': {
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toISOString().split('T')[0];
-            params.append('minDate', tomorrowStr);
-            params.append('maxDate', tomorrowStr);
-            break;
-          }
-          case 'this-week': {
-            const endOfWeek = new Date(today);
-            endOfWeek.setDate(endOfWeek.getDate() + 7);
-            params.append('minDate', today.toISOString().split('T')[0]);
-            params.append('maxDate', endOfWeek.toISOString().split('T')[0]);
-            break;
-          }
-          case 'weekend': {
-            // Find next Friday and Sunday
-            const friday = new Date(today);
-            const daysUntilFriday = (5 + 7 - friday.getDay()) % 7;
-            friday.setDate(friday.getDate() + daysUntilFriday);
-            
-            const sunday = new Date(friday);
-            sunday.setDate(sunday.getDate() + 2);
-            
-            params.append('minDate', friday.toISOString().split('T')[0]);
-            params.append('maxDate', sunday.toISOString().split('T')[0]);
-            break;
-          }
-          case 'all':
-          default:
-            // If 'all' is selected, don't add date filters
-            break;
-        }
-      }
+    // Handle keyword (event name)
+    if (validatedParams.event) {
+      params.append('keyword', validatedParams.event);
     }
 
-    // Add location search if provided
+    // Handle location search
     if (location) {
-      const coords = await getLatLon(location);
-      if (coords) {
-        params.append('latitude', coords.lat.toString());
-        params.append('longitude', coords.lon.toString());
-        params.append('radius', '20'); // 20 miles radius - adjust as needed
-      } else {
-        // Fallback to keyword-based location search if geocoding fails
-        params.append('keyword', `${keyword} ${location}`);
-      }
+      params.append('keyword', location);
+      params.append('radius', '20');
+      params.append('geodist', '1');
     }
 
-    // Add genre filtering with logging
-    if (genre && SKIDDLE_GENRE_IDS[genre as keyof typeof SKIDDLE_GENRE_IDS]) {
-      const genreIds = SKIDDLE_GENRE_IDS[genre as keyof typeof SKIDDLE_GENRE_IDS];
-      params.append('genreids', genreIds.join(','));
-      console.log('Filtering by genre:', genre);
-      console.log('Using genre IDs:', genreIds);
-    }
-
-    // Log the final URL being called
-    const url = `${SKIDDLE_API_BASE}/events/search?${params.toString()}`;
-    console.log('Calling Skiddle API:', url);
-
-    const response = await axios.get(url);
-    console.log('Skiddle response:', response.data);
-
-    // Filter events based on genre if specified
+    const response = await axios.get(`${SKIDDLE_API_BASE}/events/search?${params.toString()}`);
+    
     let filteredEvents = response.data.results;
-    if (genre && genre !== 'all' && GENRE_TO_SKIDDLE_IDS[genre as keyof typeof GENRE_TO_SKIDDLE_IDS]) {
-      const validGenreIds = GENRE_TO_SKIDDLE_IDS[genre as keyof typeof GENRE_TO_SKIDDLE_IDS];
-      
+    if (genre && genre !== 'all') {
       filteredEvents = response.data.results.filter((event: any) => 
-        event.genres?.some((eventGenre: SkiddleGenre) => 
-          validGenreIds.includes(eventGenre.genreid)
+        event.genres?.some((eventGenre: { genreid: string }) => 
+          GENRE_TO_SKIDDLE_IDS[genre as keyof typeof GENRE_TO_SKIDDLE_IDS]?.includes(eventGenre.genreid)
         )
       );
-      
-      console.log(`Filtered from ${response.data.results.length} to ${filteredEvents.length} events for genre ${genre}`);
+
+      // If we don't have enough events and there are more available, fetch another batch
+      if (filteredEvents.length < limit && parseInt(response.data.totalcount) > fetchLimit) {
+        const nextBatch = await axios.get(`${SKIDDLE_API_BASE}/events/search?${new URLSearchParams({
+          ...Object.fromEntries(params),
+          offset: fetchLimit.toString(),
+          limit: fetchLimit.toString(),
+        }).toString()}`);
+
+        const additionalEvents = nextBatch.data.results.filter((event: any) => 
+          event.genres?.some((eventGenre: { genreid: string }) => 
+            GENRE_TO_SKIDDLE_IDS[genre as keyof typeof GENRE_TO_SKIDDLE_IDS]?.includes(eventGenre.genreid)
+          )
+        );
+
+        filteredEvents = [...filteredEvents, ...additionalEvents];
+      }
     }
 
-    // Calculate pagination values
-    const totalFilteredCount = genre && genre !== 'all' 
-      ? filteredEvents.length 
-      : response.data.totalcount;
+    // Calculate pagination based on filtered results
+    const totalCount = genre && genre !== 'all'
+      ? filteredEvents.length
+      : parseInt(response.data.totalcount);
+    
+    const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+    
+    // Get the correct slice of events for the current page
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const pageEvents = filteredEvents.slice(startIndex, endIndex);
 
-    const totalPages = Math.max(1, Math.ceil(totalFilteredCount / limit));
-    const currentPage = Math.min(Math.floor(offset / limit) + 1, totalPages);
-
-    // Calculate the correct slice for the current page
-    const startIndex = (currentPage - 1) * limit;
-    const endIndex = Math.min(startIndex + limit, filteredEvents.length);
-    const paginatedEvents = filteredEvents.slice(startIndex, endIndex);
-
-    // Transform and return events
     return NextResponse.json({
-      events: paginatedEvents.map((event: any) => ({
+      events: pageEvents.map((event: any) => ({
         id: event.id,
         title: event.eventname,
         description: event.description || '',
@@ -181,31 +122,26 @@ export async function GET(req: Request) {
         town: event.venue.town,
         latitude: parseFloat(event.venue.latitude),
         longitude: parseFloat(event.venue.longitude),
-        link: event.link,
         imageUrl: event.largeimageurl || event.imageurl,
-        price: event.entryprice || 0,
-        platform: 'skiddle',
-        approved: true,
-        // Add new fields from description=1 parameter
-        artists: event.artists || [],
-        genres: event.genres || [],
         minAge: event.MinAge || null,
+        entryPrice: event.entryprice || null,
+        genres: event.genres || [],
+        link: event.link || null,
+        platform: 'skiddle'
       })),
-      hasMore: currentPage < totalPages,
-      total: totalFilteredCount,
-      currentPage,
-      totalPages,
-      fromCache: false,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalResults: totalCount,
+        hasMore: page < totalPages
+      }
     });
 
-  } catch (error: any) {
-    console.error("Error fetching events:", error.response?.data || error.message);
+  } catch (error) {
+    console.error("Error fetching events:", error);
     return NextResponse.json(
-      {
-        message: "Error fetching events",
-        details: error.response?.data?.error || error.message,
-      },
-      { status: error.response?.status || 500 }
+      { message: "Error fetching events" },
+      { status: 500 }
     );
   }
 }

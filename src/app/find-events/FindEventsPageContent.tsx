@@ -6,7 +6,7 @@ import EventCard from "@/components/EventCard";
 import SkeletonEventCard from "@/components/SkeletonEventCard";
 import { capitalizeFirstLetter } from "@/lib/utils";
 import { FunnelIcon, XMarkIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Event } from "@prisma/client";
 import { GENRE_MAPPINGS } from "@/lib/constants";
 import { useRouter } from "next/navigation";
@@ -27,10 +27,12 @@ interface Filters {
 
 interface EventsResponse {
   events: ExtendedEvent[];
-  hasMore: boolean;
-  total: number;
-  currentPage: number;
-  totalPages: number;
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalResults: number;
+    hasMore: boolean;
+  };
 }
 
 const dateFilterOptions = [
@@ -44,7 +46,10 @@ const dateFilterOptions = [
 
 const fetchEvents = async (searchParams: URLSearchParams) => {
   const response = await fetch(`/api/events/search?${searchParams.toString()}`);
-  if (!response.ok) throw new Error("Failed to fetch events");
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to fetch events');
+  }
   return response.json();
 };
 
@@ -66,7 +71,7 @@ const FindEventsPageContent = () => {
   const [hasMoreLocal, setHasMoreLocal] = useState(false);
   const eventsPerPage = 12;
   const [showCustomDate, setShowCustomDate] = useState(false);
-  const [isFiltersVisible, setIsFiltersVisible] = useState(true);
+  const [isFiltersVisible, setIsFiltersVisible] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const router = useRouter();
@@ -89,21 +94,20 @@ const FindEventsPageContent = () => {
 
   // Update queries when URL params change or filters change
   const { data, isLoading, error } = useQuery<EventsResponse>({
-    queryKey: ["events", filters, eventQuery, currentPage],
+    queryKey: ["events", filters, eventQuery, locationQuery, currentPage],
     queryFn: async () => {
       const params = new URLSearchParams({
         ...(eventQuery && { event: eventQuery }),
         ...(locationQuery && { location: locationQuery }),
         ...(filters.dateRange && { dateRange: filters.dateRange }),
         ...(filters.customDate && { customDate: filters.customDate }),
-        ...(filters.genre &&
-          filters.genre !== "all" && { genre: filters.genre }),
-        skip: ((currentPage - 1) * eventsPerPage).toString(),
+        ...(filters.genre && filters.genre !== "all" && { genre: filters.genre }),
+        page: currentPage.toString(),
         limit: eventsPerPage.toString(),
       });
-
       return fetchEvents(params);
     },
+    placeholderData: keepPreviousData // Use placeholderData instead of keepPreviousData
   });
 
   // Update events when data changes
@@ -171,6 +175,12 @@ const FindEventsPageContent = () => {
       : "All events";
 
   const toggleFilters = () => {
+    // Prevent body scroll when filter menu is open
+    if (!isFiltersVisible) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
     setIsFiltersVisible(!isFiltersVisible);
   };
 
@@ -200,6 +210,22 @@ const FindEventsPageContent = () => {
     });
     setShowCustomDate(false);
   };
+
+  // Add cleanup effect
+  useEffect(() => {
+    return () => {
+      // Reset body scroll when component unmounts
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  // Add this effect to handle body scroll for mobile filters
+  useEffect(() => {
+    document.body.style.overflow = isMobileFiltersOpen ? 'hidden' : 'unset';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobileFiltersOpen]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -511,12 +537,15 @@ const FindEventsPageContent = () => {
           )}
 
           {/* Backdrop */}
-          {isFiltersVisible && (
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
-              onClick={() => setIsFiltersVisible(false)}
-            />
-          )}
+          <div
+            className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300 ${
+              isFiltersVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+            onClick={() => {
+              setIsFiltersVisible(false);
+              document.body.style.overflow = 'unset';
+            }}
+          />
 
           {/* Events Section */}
           <div className="flex-1">
@@ -589,22 +618,22 @@ const FindEventsPageContent = () => {
             </div>
 
             {/* Pagination */}
-            {data && data.total > 0 && (
+            {data && data.pagination && data.pagination.totalPages > 1 && (
               <div className="mt-8 flex justify-center gap-2">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border rounded-md disabled:opacity-50"
+                  className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
                 <span className="px-4 py-2">
-                  Page {currentPage} of {Math.max(1, data.totalPages)}
+                  Page {currentPage} of {data.pagination.totalPages}
                 </span>
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage >= data.totalPages}
-                  className="px-4 py-2 border rounded-md disabled:opacity-50"
+                  disabled={currentPage === data.pagination.totalPages}
+                  className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Image from 'next/image';
+import Image from "next/image";
 
 export default function Component() {
   const { data: session } = useSession();
@@ -112,14 +112,12 @@ export default function Component() {
         Your browser does not support the video tag.
       </video>
       <div className="relative z-10 w-full h-full flex items-center justify-center px-4">
-        <Card className="w-full max-w-md bg-white">
+        <Card className="w-full max-w-md bg-white backdrop-blur-sm">
           <CardContent className="p-6">
-            {/* <h1 className="text-2xl font-black text-center text-blue-600 mb-6">
+            <h1 className="text-4xl font-black text-center text-blue-600 mb-6">
               FINDMYRAVE
             </h1>
-            <p className="text-center text-gray-600 mb-6">
-              Join the community and discover amazing events
-            </p> */}
+
             {error && (
               <div className="mb-4 p-3 bg-red-100 text-red-600 rounded-lg text-sm">
                 {error}
@@ -135,7 +133,12 @@ export default function Component() {
                 "Connecting..."
               ) : (
                 <>
-                  <Image src="/google.svg" alt="Google" width={20} height={20} />
+                  <Image
+                    src="/google.svg"
+                    alt="Google"
+                    width={20}
+                    height={20}
+                  />
                   Continue with Google
                 </>
               )}

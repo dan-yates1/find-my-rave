@@ -69,6 +69,8 @@ export default function EventCard({ event, initialIsBookmarked = false }: EventC
           <BookmarkButton
             eventId={eventId}
             initialIsBookmarked={initialIsBookmarked}
+            variant="default"
+            size="lg"
           />
         </div>
       </div>

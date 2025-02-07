@@ -10,15 +10,15 @@ import { useSession } from 'next-auth/react';
 interface BookmarkButtonProps {
   eventId: string;
   initialIsBookmarked?: boolean;
-  variant?: 'default' | 'compact';
-  size?: 'default' | 'small';
+  variant: "default" | "compact" | "detail";
+  size: "sm" | "lg";
 }
 
 export default function BookmarkButton({ 
   eventId, 
   initialIsBookmarked = false,
   variant = 'default',
-  size = 'default'
+  size = 'sm'
 }: BookmarkButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showSignInPrompt, setShowSignInPrompt] = useState(false);

@@ -3,10 +3,10 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="fixed inset-0 overflow-hidden">
-      <div className="h-full text-white">
+    <main className="overflow-auto">
+      <div className="relative min-h-screen text-white">
         {/* Background Video with Overlay */}
-        <div className="absolute inset-0">
+        <div className="fixed inset-0 z-0">
           <video
             autoPlay
             loop
@@ -19,36 +19,30 @@ export default function Home() {
           >
             <source src="/rave-video.webm" type="video/webm" />
           </video>
-          {/* Gradient overlay for better contrast */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/30"></div>
+          {/* Subtle gradient overlay for better text visibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-black/20"></div>
         </div>
 
         {/* Content */}
-        <div className="relative z-20 flex flex-col items-center justify-center h-full px-4">
-          <div className="text-center space-y-6 max-w-3xl mx-auto">
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-16">
+          <div className="text-center space-y-12 max-w-4xl mx-auto">
             <div className="flex flex-col items-center">
-              <h1 className="text-5xl md:text-7xl font-bold text-white">
-                <span className="inline-block">Discover</span>{" "}
-                <span className="inline-block text-blue-500">Your Next Rave</span>
+              <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-white tracking-tight leading-none mb-6">
+                <span className="inline-block bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-300">
+                  One search. All the best electronic music events. Anywhere.
+                </span>
               </h1>
-              <div className="h-1 w-24 bg-blue-600 mt-4 mb-2"></div>
-            </div>
-            <p className="text-xl md:text-2xl text-white/90 max-w-2xl mx-auto">
-              Find the best electronic music events near you
-            </p>
 
-            {/* <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
-              <Link href="/find-events">
-                <button className="w-full sm:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium hover-effect">
-                  Find Events
-                </button>
-              </Link>
-              <Link href="/create-event">
-                <button className="w-full sm:w-auto px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/30 text-white rounded-full font-medium hover-effect">
-                  Submit an Event
-                </button>
-              </Link>
-            </div> */}
+              {/* CTA Button */}
+              <div className="mt-8">
+                <Link
+                  href="/find-events"
+                  className="inline-block px-12 py-4 border border-white/30 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-full font-medium transition-all duration-300 text-xl"
+                >
+                  Explore Events
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -108,7 +108,7 @@ export default function Component() {
         disablePictureInPicture
         disableRemotePlayback
       >
-        <source src="/rave-video.mp4" type="video/mp4" />
+        <source src="/rave-video.webm" type="video/webm" />
         Your browser does not support the video tag.
       </video>
       <div className="relative z-10 w-full h-full flex items-center justify-center px-4">

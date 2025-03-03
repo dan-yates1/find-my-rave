@@ -1,18 +1,25 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { useCallback, useEffect, useState } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import EventCard from "@/components/EventCard";
+import { Button } from "@/components/ui/button";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
+import { FunnelIcon, PlusCircleIcon } from "@heroicons/react/24/solid";
+import { GENRE_MAPPINGS } from "@/lib/constants";
+import ActiveFiltersBadges from "@/components/ActiveFiltersBadges";
+import { Event, EventsResponse } from "@/types/event";
 import SkeletonEventCard from "@/components/SkeletonEventCard";
 import { capitalizeFirstLetter } from "@/lib/utils";
-import { FunnelIcon, XMarkIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { Event } from "@prisma/client";
-import { GENRE_MAPPINGS } from "@/lib/constants";
-import { useRouter } from "next/navigation";
 
-// Extend the Event type to include platform
+// Define ExtendedEvent interface that extends Event from our types
 interface ExtendedEvent extends Event {
+  // Any additional properties specific to your application
   platform: string;
 }
 
@@ -21,18 +28,9 @@ interface Filters {
   dateRange?: string;
   priceRange?: string;
   customDate?: string;
-  sortBy?: "date" | "relevance";
+  minDate?: string;
+  maxDate?: string;
   genre: string;
-}
-
-interface EventsResponse {
-  events: ExtendedEvent[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalResults: number;
-    hasMore: boolean;
-  };
 }
 
 const dateFilterOptions = [
@@ -44,13 +42,48 @@ const dateFilterOptions = [
   { label: "Custom date", value: "custom" },
 ];
 
+const platformOptions = [
+  { label: "All platforms", value: "all" },
+  { label: "Skiddle", value: "skiddle" },
+  { label: "Resident Advisor", value: "resident-advisor" },
+  { label: "Dice", value: "dice" },
+];
+
+const genreOptions = [
+  { label: "All genres", value: "all" },
+  { label: "House", value: "house" },
+  { label: "Techno", value: "techno" },
+  { label: "Drum & Bass", value: "dnb" },
+  { label: "Trance", value: "trance" },
+  { label: "Dubstep", value: "dubstep" },
+  { label: "Garage", value: "garage" },
+  { label: "Hardstyle", value: "hardstyle" },
+  { label: "Electronic", value: "electronic" },
+];
+
+const sortByOptions = [
+  { label: "Trending", value: "trending" },
+  { label: "Date", value: "date" },
+  { label: "Best Selling", value: "bestselling" },
+  { label: "Most Popular", value: "goingto" },
+];
+
 const fetchEvents = async (searchParams: URLSearchParams) => {
-  const response = await fetch(`/api/events/search?${searchParams.toString()}`);
+  // Use the new combined endpoint
+  const response = await fetch(
+    `/api/events/combined?${searchParams.toString()}`
+  );
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.message || 'Failed to fetch events');
+    throw new Error(errorData.message || "Failed to fetch events");
   }
   return response.json();
+};
+
+const transformFiltersToObject = (filters: Filters) => {
+  return Object.fromEntries(
+    Object.entries(filters).filter(([key, value]) => value && value !== "all")
+  );
 };
 
 const FindEventsPageContent = () => {
@@ -63,16 +96,17 @@ const FindEventsPageContent = () => {
     dateRange: "all",
     priceRange: "all",
     customDate: "",
-    sortBy: "date",
+    minDate: "",
+    maxDate: "",
     genre: "all",
   });
   const [allEvents, setAllEvents] = useState<ExtendedEvent[]>([]);
   const [displayedEvents, setDisplayedEvents] = useState<ExtendedEvent[]>([]);
   const [hasMoreLocal, setHasMoreLocal] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const eventsPerPage = 12;
   const [showCustomDate, setShowCustomDate] = useState(false);
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const router = useRouter();
 
@@ -82,63 +116,151 @@ const FindEventsPageContent = () => {
     dateRange: "all",
     priceRange: "all",
     customDate: "",
-    sortBy: "date",
+    minDate: "",
+    maxDate: "",
     genre: "all",
   });
+
+  // Add state for sortBy separate from filters
+  const [sortBy, setSortBy] = useState<string>("trending");
+  const [pendingSortBy, setPendingSortBy] = useState<string>("trending");
 
   // Add new state for expanded sections
   const [expandedSections, setExpandedSections] = useState({
     date: true,
     genre: true,
+    platform: true,
   });
+
+  // Add new state for active filters
+  const [activeFilters, setActiveFilters] = useState<Filters>({
+    platform: "all",
+    dateRange: "all",
+    priceRange: "all",
+    customDate: "",
+    minDate: "",
+    maxDate: "",
+    genre: "all",
+  });
+
+  const prevSearchParams = React.useRef(searchParams.toString());
 
   // Update queries when URL params change or filters change
   const { data, isLoading, error } = useQuery<EventsResponse>({
-    queryKey: ["events", filters, eventQuery, locationQuery, currentPage],
+    queryKey: ["events", filters, sortBy, eventQuery, locationQuery],
     queryFn: async () => {
       const params = new URLSearchParams({
         ...(eventQuery && { event: eventQuery }),
         ...(locationQuery && { location: locationQuery }),
         ...(filters.dateRange && { dateRange: filters.dateRange }),
         ...(filters.customDate && { customDate: filters.customDate }),
-        ...(filters.genre && filters.genre !== "all" && { genre: filters.genre }),
-        page: currentPage.toString(),
-        limit: eventsPerPage.toString(),
+        ...(filters.minDate && { minDate: filters.minDate }),
+        ...(filters.maxDate && { maxDate: filters.maxDate }),
+        ...(sortBy && { order: sortBy }),
+        ...(filters.genre &&
+          filters.genre !== "all" && { genre: filters.genre }),
+        limit: eventsPerPage.toString(), // Just fetch one page at a time
       });
       return fetchEvents(params);
     },
-    placeholderData: keepPreviousData // Use placeholderData instead of keepPreviousData
+    placeholderData: keepPreviousData,
+    staleTime: 60 * 1000, // 1 minute
+    refetchOnWindowFocus: false,
   });
 
   // Update events when data changes
   useEffect(() => {
     if (data?.events) {
+      console.log("Data events received:", data.events.length);
+
+      // Store all events from the API
       setAllEvents(data.events);
-      setDisplayedEvents(data.events.slice(0, eventsPerPage));
-      setHasMoreLocal(data.events.length > eventsPerPage);
+
+      // Display all events we got from this page
+      setDisplayedEvents(data.events);
+
+      // Set hasMoreLocal based on the pagination info from the API
+      const hasMore = data.pagination.hasMore;
+      console.log("Setting hasMoreLocal to:", hasMore);
+      setHasMoreLocal(hasMore);
     }
   }, [data]);
 
   // Reset events when search params change
   useEffect(() => {
-    setAllEvents([]);
-    setDisplayedEvents([]);
-    setHasMoreLocal(false);
+    // Only reset if the search parameters have actually changed
+    // Don't reset just because of page changes
+    if (searchParams.toString() !== prevSearchParams.current) {
+      console.log("Search params changed, resetting events");
+      setAllEvents([]);
+      setDisplayedEvents([]);
+      setHasMoreLocal(false);
+      prevSearchParams.current = searchParams.toString();
+    }
   }, [searchParams]);
 
   // Handle "Show More" click
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const handleShowMore = useCallback(() => {
+    console.log("Show More clicked");
+    console.log("Current displayed events:", displayedEvents.length);
+
+    // Set loading state
+    setIsLoadingMore(true);
+
+    // Calculate the next page
+    const nextPage = Math.floor(displayedEvents.length / eventsPerPage) + 1;
+    console.log("Fetching next page:", nextPage);
+
+    // Fetch the next page of events
+    const params = new URLSearchParams({
+      ...(eventQuery && { event: eventQuery }),
+      ...(locationQuery && { location: locationQuery }),
+      ...(filters.dateRange && { dateRange: filters.dateRange }),
+      ...(filters.customDate && { customDate: filters.customDate }),
+      ...(filters.minDate && { minDate: filters.minDate }),
+      ...(filters.maxDate && { maxDate: filters.maxDate }),
+      ...(sortBy && { order: sortBy }),
+      ...(filters.genre && filters.genre !== "all" && { genre: filters.genre }),
+      limit: eventsPerPage.toString(),
+      page: nextPage.toString(),
+    });
+
+    fetchEvents(params)
+      .then((newData) => {
+        console.log("New page data received:", newData.events.length);
+
+        // Combine the new events with the existing ones
+        const combinedEvents = [...displayedEvents, ...newData.events];
+        setDisplayedEvents(combinedEvents);
+        setAllEvents(combinedEvents);
+
+        // Check if there are more events to load
+        const hasMore = newData.pagination.hasMore;
+        console.log("Setting hasMoreLocal to:", hasMore);
+        setHasMoreLocal(hasMore);
+      })
+      .catch((error) => {
+        console.error("Error fetching more events:", error);
+      })
+      .finally(() => {
+        setIsLoadingMore(false);
+      });
+  }, [
+    eventQuery,
+    locationQuery,
+    filters,
+    displayedEvents,
+    eventsPerPage,
+    sortBy,
+  ]);
 
   // Update the filter handlers
   const handlePendingFilterChange = (key: keyof Filters, value: string) => {
-    setPendingFilters(prev => ({
+    setPendingFilters((prev) => ({
       ...prev,
       [key]: value,
       // Reset customDate if dateRange is changed and it's not custom
-      ...(key === 'dateRange' && value !== 'custom' ? { customDate: '' } : {})
+      ...(key === "dateRange" && value !== "custom" ? { customDate: "" } : {}),
     }));
   };
 
@@ -146,25 +268,44 @@ const FindEventsPageContent = () => {
   const handlePendingDateFilterChange = (value: string) => {
     if (value === "custom") {
       setShowCustomDate(true);
-      setPendingFilters(prev => ({
+      setPendingFilters((prev) => ({
         ...prev,
-        dateRange: value
+        dateRange: value,
+        // Clear minDate and maxDate when switching to custom date
+        minDate: "",
+        maxDate: "",
       }));
     } else {
       setShowCustomDate(false);
-      setPendingFilters(prev => ({
+      setPendingFilters((prev) => ({
         ...prev,
         dateRange: value,
-        customDate: '' // Clear custom date when selecting a preset date range
+        customDate: "", // Clear custom date when selecting a preset date range
+        // Clear minDate and maxDate when switching to a preset date range
+        minDate: "",
+        maxDate: "",
       }));
     }
+  };
+
+  // Add custom date range handler
+  const handleCustomDateChange = (
+    type: "minDate" | "maxDate",
+    value: string
+  ) => {
+    setPendingFilters((prev) => ({
+      ...prev,
+      [type]: value,
+    }));
   };
 
   // Add apply filters function
   const applyFilters = () => {
     setFilters(pendingFilters);
+    setSortBy(pendingSortBy);
     setIsMobileFiltersOpen(false);
-    setCurrentPage(1); // Reset to first page when applying new filters
+    setAllEvents([]);
+    setDisplayedEvents([]);
   };
 
   const titleText =
@@ -177,9 +318,9 @@ const FindEventsPageContent = () => {
   const toggleFilters = () => {
     // Prevent body scroll when filter menu is open
     if (!isFiltersVisible) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
     setIsFiltersVisible(!isFiltersVisible);
   };
@@ -192,9 +333,9 @@ const FindEventsPageContent = () => {
 
   // Add toggle function
   const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({
+    setExpandedSections((prev) => ({
       ...prev,
-      [section]: !prev[section]
+      [section]: !prev[section],
     }));
   };
 
@@ -205,353 +346,317 @@ const FindEventsPageContent = () => {
       dateRange: "all",
       priceRange: "all",
       customDate: "",
-      sortBy: "date",
+      minDate: "",
+      maxDate: "",
       genre: "all",
     });
+    setPendingSortBy("trending");
     setShowCustomDate(false);
+  };
+
+  // Add clearAllFilters function
+  const clearAllFilters = () => {
+    const defaultFilters: Filters = {
+      platform: "all",
+      dateRange: "all",
+      priceRange: "all",
+      customDate: "",
+      minDate: "",
+      maxDate: "",
+      genre: "all",
+    };
+
+    setFilters(defaultFilters);
+    setSortBy("trending");
+    setPendingFilters(defaultFilters);
+    setPendingSortBy("trending");
+    setActiveFilters(defaultFilters);
+    setShowCustomDate(false);
+
+    // Clear URL params if any
+    if (eventQuery || locationQuery) {
+      router.push("/find-events");
+    }
   };
 
   // Add cleanup effect
   useEffect(() => {
     return () => {
       // Reset body scroll when component unmounts
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, []);
 
   // Add this effect to handle body scroll for mobile filters
   useEffect(() => {
-    document.body.style.overflow = isMobileFiltersOpen ? 'hidden' : 'unset';
+    document.body.style.overflow = isMobileFiltersOpen ? "hidden" : "unset";
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, [isMobileFiltersOpen]);
 
+  // Function to remove a filter
+  const removeFilter = (key: string) => {
+    // Update both active filters and actual filters
+    const updatedFilters = {
+      ...filters,
+      [key]: "all", // Reset to "all" or appropriate default
+    };
+
+    // Update the filters state
+    setFilters(updatedFilters);
+
+    // Also update active filters for UI
+    setActiveFilters(updatedFilters);
+  };
+
+  // Update active filters when filters change
+  useEffect(() => {
+    setActiveFilters(filters);
+  }, [filters]);
+
+  // Function to handle sorting option change
+  const handleSortByChange = (value: string) => {
+    setPendingSortBy(value);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile filter dialog */}
-      <div
-        className={`fixed inset-0 bg-black bg-opacity-25 z-40 transition-opacity duration-300 ${
-          isMobileFiltersOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-        onClick={() => setIsMobileFiltersOpen(false)}
-      />
+      <div className="container mx-auto px-4 py-8">
+        {/* Active Filters Badges - Moved to a more prominent position */}
+        <div className="mb-4">
+          <ActiveFiltersBadges
+            filters={{
+              ...transformFiltersToObject(filters),
+              ...(sortBy !== "trending" && { sortBy }),
+            }}
+            onRemoveFilter={(key) => {
+              if (key === "sortBy") {
+                setSortBy("trending");
+                setAllEvents([]);
+                setDisplayedEvents([]);
+              } else {
+                removeFilter(key);
+              }
+            }}
+            onClearAll={clearAllFilters}
+          />
+        </div>
 
-      <div
-        className={`fixed inset-y-0 left-0 z-50 w-[85%] max-w-md transform transition-transform duration-300 ease-in-out ${
-          isMobileFiltersOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="h-full bg-white flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="text-lg font-semibold">Filters</h2>
-            <button
-              onClick={() => setIsMobileFiltersOpen(false)}
-              className="p-2 hover:bg-gray-100 rounded-full"
-            >
-              <XMarkIcon className="w-6 h-6" />
-            </button>
-          </div>
+        {/* Mobile filter dialog */}
+        <div
+          className={`fixed inset-0 bg-black bg-opacity-25 z-40 transition-opacity duration-300 ${
+            isMobileFiltersOpen
+              ? "opacity-100"
+              : "opacity-0 pointer-events-none"
+          }`}
+          onClick={() => setIsMobileFiltersOpen(false)}
+        ></div>
 
-          {/* Filters Content - Scrollable */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-4 space-y-6">
-              {/* Date Filter */}
-              <div className="space-y-4">
-                <button
-                  onClick={() => toggleSection('date')}
-                  className="flex items-center justify-between w-full text-left"
-                >
-                  <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                    Date
-                  </h3>
-                  <ChevronDownIcon 
-                    className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
-                      expandedSections.date ? 'transform rotate-180' : ''
-                    }`}
-                  />
-                </button>
-                
-                {expandedSections.date && (
-                  <div className="space-y-3 pt-2">
-                    {dateFilterOptions.map((option) => (
-                      <label
-                        key={option.value}
-                        className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
-                      >
-                        <input
-                          type="radio"
-                          name="dateFilter-mobile"
-                          value={option.value}
-                          checked={pendingFilters.dateRange === option.value}
-                          onChange={(e) => handlePendingDateFilterChange(e.target.value)}
-                          className="text-blue-600 focus:ring-blue-500 h-4 w-4"
-                        />
-                        <span className="text-sm">{option.label}</span>
-                      </label>
-                    ))}
-                    
-                    {/* Custom Date Input */}
-                    {showCustomDate && (
-                      <input
-                        type="date"
-                        value={pendingFilters.customDate}
-                        onChange={(e) => handlePendingFilterChange("customDate", e.target.value)}
-                        className="mt-3 w-full rounded-md border-gray-200 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500"
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
+        <div
+          className={`fixed inset-y-0 left-0 z-50 w-[85%] max-w-md transform transition-transform duration-300 ease-in-out ${
+            isMobileFiltersOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <div className="h-full bg-white flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Filters</h2>
+              <button
+                onClick={() => setIsMobileFiltersOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-full"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
 
-              {/* Genre Filter */}
-              <div className="space-y-4">
-                <button
-                  onClick={() => toggleSection('genre')}
-                  className="flex items-center justify-between w-full text-left"
-                >
-                  <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                    Genre
-                  </h3>
-                  <ChevronDownIcon 
-                    className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
-                      expandedSections.genre ? 'transform rotate-180' : ''
-                    }`}
-                  />
-                </button>
-                
-                {expandedSections.genre && (
-                  <div className="space-y-3 pt-2">
-                    <label className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2">
-                      <input
-                        type="radio"
-                        name="genreFilter-mobile"
-                        value="all"
-                        checked={pendingFilters.genre === "all"}
-                        onChange={(e) => handlePendingFilterChange("genre", e.target.value)}
-                        className="text-blue-600 focus:ring-blue-500 h-4 w-4"
-                      />
-                      <span className="text-sm">All Genres</span>
-                    </label>
-                    {Object.entries(GENRE_MAPPINGS).map(([code, { label }]) => (
-                      <label
-                        key={code}
-                        className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
-                      >
+            {/* Filters Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-4 space-y-6">
+                {/* Date Filter */}
+                <div className="space-y-4">
+                  <button
+                    onClick={() => toggleSection("date")}
+                    className="flex items-center justify-between w-full text-left"
+                  >
+                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                      Date
+                    </h3>
+                    <ChevronDownIcon
+                      className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                        expandedSections.date ? "transform rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {expandedSections.date && (
+                    <div className="space-y-3 pt-2">
+                      {dateFilterOptions.map((option) => (
+                        <label
+                          key={option.value}
+                          className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
+                        >
+                          <input
+                            type="radio"
+                            name="dateFilter-mobile"
+                            value={option.value}
+                            checked={pendingFilters.dateRange === option.value}
+                            onChange={(e) =>
+                              handlePendingDateFilterChange(e.target.value)
+                            }
+                            className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                          />
+                          <span className="text-sm">{option.label}</span>
+                        </label>
+                      ))}
+
+                      {/* Custom Date Input */}
+                      {showCustomDate && (
+                        <div className="space-y-3 mt-3">
+                          <div>
+                            <label className="block text-sm text-gray-600 mb-1">
+                              From
+                            </label>
+                            <input
+                              type="date"
+                              value={pendingFilters.minDate}
+                              onChange={(e) =>
+                                handleCustomDateChange(
+                                  "minDate",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full rounded-md border-gray-200 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-600 mb-1">
+                              To
+                            </label>
+                            <input
+                              type="date"
+                              value={pendingFilters.maxDate}
+                              onChange={(e) =>
+                                handleCustomDateChange(
+                                  "maxDate",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full rounded-md border-gray-200 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Genre Filter */}
+                <div className="space-y-4">
+                  <button
+                    onClick={() => toggleSection("genre")}
+                    className="flex items-center justify-between w-full text-left"
+                  >
+                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                      Genre
+                    </h3>
+                    <ChevronDownIcon
+                      className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                        expandedSections.genre ? "transform rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {expandedSections.genre && (
+                    <div className="space-y-3 pt-2">
+                      <label className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2">
                         <input
                           type="radio"
                           name="genreFilter-mobile"
-                          value={code}
-                          checked={pendingFilters.genre === code}
-                          onChange={(e) => handlePendingFilterChange("genre", e.target.value)}
+                          value="all"
+                          checked={pendingFilters.genre === "all"}
+                          onChange={(e) =>
+                            handlePendingFilterChange("genre", e.target.value)
+                          }
                           className="text-blue-600 focus:ring-blue-500 h-4 w-4"
                         />
-                        <span className="text-sm">{label}</span>
+                        <span className="text-sm">All Genres</span>
                       </label>
-                    ))}
-                  </div>
-                )}
+                      {Object.entries(GENRE_MAPPINGS).map(
+                        ([code, { label }]) => (
+                          <label
+                            key={code}
+                            className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
+                          >
+                            <input
+                              type="radio"
+                              name="genreFilter-mobile"
+                              value={code}
+                              checked={pendingFilters.genre === code}
+                              onChange={(e) =>
+                                handlePendingFilterChange(
+                                  "genre",
+                                  e.target.value
+                                )
+                              }
+                              className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                            />
+                            <span className="text-sm">{label}</span>
+                          </label>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Show Results Button - Fixed at bottom */}
-          <div className="border-t p-4 bg-white">
-            <div className="flex gap-3">
-              <button
-                onClick={resetFilters}
-                className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-              >
-                Reset Filters
-              </button>
-              <button
-                onClick={applyFilters}
-                className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-blue-700 transition-colors"
-              >
-                Show Results
-              </button>
+            {/* Show Results Button - Fixed at bottom */}
+            <div className="border-t p-4 bg-white">
+              <div className="flex gap-3">
+                <button
+                  onClick={resetFilters}
+                  className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Reset Filters
+                </button>
+                <button
+                  onClick={applyFilters}
+                  className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Show Results
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Update mobile filter toggle button position */}
-      <div className="lg:hidden fixed bottom-6 left-6 z-30">
-        <button
-          onClick={() => setIsMobileFiltersOpen(true)}
-          className="bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
-        >
-          <FunnelIcon className="w-6 h-6" />
-        </button>
-      </div>
-
-      {/* Main content */}
-      <div className="container mx-auto px-4 py-8">
-        <div className={`flex gap-8`}>
-          {/* Desktop Filters */}
-          {isFiltersVisible && (
-            <div 
-              className={`fixed inset-y-0 right-0 w-80 bg-white shadow-lg transform transition-transform duration-300 ease-in-out z-50 ${
-                isFiltersVisible ? 'translate-x-0' : 'translate-x-full'
-              }`}
-            >
-              <div className="h-full flex flex-col">
-                {/* Header */}
-                <div className="p-6 border-b">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold">Filters</h2>
-                    <button
-                      onClick={() => setIsFiltersVisible(false)}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      <XMarkIcon className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Filters Content - Scrollable */}
-                <div className="flex-1 overflow-y-auto p-6">
-                  <div className="space-y-6">
-                    {/* Date Filter */}
-                    <div className="space-y-4">
-                      <button
-                        onClick={() => toggleSection('date')}
-                        className="flex items-center justify-between w-full text-left"
-                      >
-                        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                          Date
-                        </h3>
-                        <ChevronDownIcon 
-                          className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
-                            expandedSections.date ? 'transform rotate-180' : ''
-                          }`}
-                        />
-                      </button>
-                      
-                      {expandedSections.date && (
-                        <div className="space-y-3 pt-2">
-                          {dateFilterOptions.map((option) => (
-                            <label
-                              key={option.value}
-                              className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
-                            >
-                              <input
-                                type="radio"
-                                name="dateFilter-desktop"
-                                value={option.value}
-                                checked={pendingFilters.dateRange === option.value}
-                                onChange={(e) => handlePendingDateFilterChange(e.target.value)}
-                                className="text-blue-600 focus:ring-blue-500 h-4 w-4"
-                              />
-                              <span className="text-sm">{option.label}</span>
-                            </label>
-                          ))}
-                          
-                          {/* Custom Date Input */}
-                          {showCustomDate && (
-                            <input
-                              type="date"
-                              value={pendingFilters.customDate}
-                              onChange={(e) => handlePendingFilterChange("customDate", e.target.value)}
-                              className="mt-3 w-full rounded-md border-gray-200 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500"
-                            />
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Genre Filter */}
-                    <div className="space-y-4">
-                      <button
-                        onClick={() => toggleSection('genre')}
-                        className="flex items-center justify-between w-full text-left"
-                      >
-                        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                          Genre
-                        </h3>
-                        <ChevronDownIcon 
-                          className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
-                            expandedSections.genre ? 'transform rotate-180' : ''
-                          }`}
-                        />
-                      </button>
-                      
-                      {expandedSections.genre && (
-                        <div className="space-y-3 pt-2">
-                          <label className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2">
-                            <input
-                              type="radio"
-                              name="genreFilter-desktop"
-                              value="all"
-                              checked={pendingFilters.genre === "all"}
-                              onChange={(e) => handlePendingFilterChange("genre", e.target.value)}
-                              className="text-blue-600 focus:ring-blue-500 h-4 w-4"
-                            />
-                            <span className="text-sm">All Genres</span>
-                          </label>
-                          {Object.entries(GENRE_MAPPINGS).map(([code, { label }]) => (
-                            <label
-                              key={code}
-                              className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
-                            >
-                              <input
-                                type="radio"
-                                name="genreFilter-desktop"
-                                value={code}
-                                checked={pendingFilters.genre === code}
-                                onChange={(e) => handlePendingFilterChange("genre", e.target.value)}
-                                className="text-blue-600 focus:ring-blue-500 h-4 w-4"
-                              />
-                              <span className="text-sm">{label}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer with Buttons - Fixed */}
-                <div className="border-t p-4 bg-white">
-                  <div className="flex gap-3">
-                    <button
-                      onClick={resetFilters}
-                      className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-                    >
-                      Reset Filters
-                    </button>
-                    <button
-                      onClick={() => {
-                        applyFilters();
-                        setIsFiltersVisible(false);
-                      }}
-                      className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      Show Results
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Backdrop */}
-          <div
-            className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300 ${
-              isFiltersVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
-            onClick={() => {
-              setIsFiltersVisible(false);
-              document.body.style.overflow = 'unset';
-            }}
-          />
-
+        {/* Main Content Container */}
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Events Section */}
           <div className="flex-1">
             {/* Title Section */}
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-2xl font-bold text-gray-900">{titleText}</h1>
+
+              {/* Fix the filter button to properly toggle filters */}
+              <button
+                onClick={() => setIsMobileFiltersOpen(true)}
+                className="lg:hidden flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm 
+                text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 
+                font-medium"
+              >
+                <FunnelIcon className="w-5 h-5 text-gray-500" />
+                <span>Filters</span>
+                {Object.values(filters).some(
+                  (value) => value !== "all" && value !== ""
+                ) && (
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                  </span>
+                )}
+              </button>
               {!isFiltersVisible && (
                 <button
                   onClick={() => setIsFiltersVisible(true)}
@@ -561,6 +666,14 @@ const FindEventsPageContent = () => {
                 >
                   <FunnelIcon className="w-5 h-5 text-gray-500 group-hover:text-gray-700 transition-colors" />
                   <span>Filters</span>
+                  {Object.values(filters).some(
+                    (value) => value !== "all" && value !== ""
+                  ) && (
+                    <span className="flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                    </span>
+                  )}
                 </button>
               )}
             </div>
@@ -594,12 +707,13 @@ const FindEventsPageContent = () => {
                       onClick={() => {
                         // Reset filters
                         setFilters({
-                          platform: "",
-                          dateRange: "",
-                          priceRange: "",
+                          platform: "all",
+                          dateRange: "all",
+                          priceRange: "all",
                           customDate: "",
-                          sortBy: "date",
-                          genre: "",
+                          minDate: "",
+                          maxDate: "",
+                          genre: "all",
                         });
                         // Clear search params
                         router.push("/find-events");
@@ -611,35 +725,252 @@ const FindEventsPageContent = () => {
                   </div>
                 </div>
               ) : (
-                data?.events?.map((event: ExtendedEvent) => (
+                displayedEvents.map((event: ExtendedEvent) => (
                   <EventCard key={event.id} event={event} />
                 ))
               )}
             </div>
 
-            {/* Pagination */}
-            {data && data.pagination && data.pagination.totalPages > 1 && (
-              <div className="mt-8 flex justify-center gap-2">
+            {/* Show More Button */}
+            {hasMoreLocal && !isLoading && !isLoadingMore && (
+              <div className="mt-8 flex justify-center">
                 <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleShowMore}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-blue-600 text-white rounded-lg hover:from-orange-600 hover:to-blue-700 transition-all duration-300 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
                 >
-                  Previous
-                </button>
-                <span className="px-4 py-2">
-                  Page {currentPage} of {data.pagination.totalPages}
-                </span>
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === data.pagination.totalPages}
-                  className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
+                  <PlusCircleIcon className="w-5 h-5" />
+                  <span>Show More Events</span>
                 </button>
               </div>
             )}
+
+            {/* Loading More Events State */}
+            {hasMoreLocal && !isLoading && isLoadingMore && (
+              <div className="mt-8 flex justify-center">
+                <div className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-400 to-blue-500 text-white rounded-lg font-medium shadow-md">
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <span>Loading More Events...</span>
+                </div>
+              </div>
+            )}
+
+            {/* Loading indicator for initial load */}
+            {isLoading && (
+              <div className="mt-8 flex justify-center">
+                <div className="flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-600 rounded-lg font-medium animate-pulse">
+                  <svg
+                    className="animate-spin h-5 w-5 text-blue-600"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <span>Loading Events...</span>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Desktop Filter Panel - Moved to right side */}
+          {isFiltersVisible && (
+            <div className="hidden lg:block w-72 bg-white p-5 rounded-xl shadow-md h-fit sticky top-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Filters</h2>
+                <button
+                  onClick={() => setIsFiltersVisible(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Date Filter */}
+                <div className="space-y-4">
+                  <button
+                    onClick={() => toggleSection("date")}
+                    className="flex items-center justify-between w-full text-left"
+                  >
+                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                      Date
+                    </h3>
+                    <ChevronDownIcon
+                      className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                        expandedSections.date ? "transform rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {expandedSections.date && (
+                    <div className="space-y-3 pt-2">
+                      {dateFilterOptions.map((option) => (
+                        <label
+                          key={option.value}
+                          className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
+                        >
+                          <input
+                            type="radio"
+                            name="dateFilter-desktop"
+                            value={option.value}
+                            checked={pendingFilters.dateRange === option.value}
+                            onChange={(e) =>
+                              handlePendingDateFilterChange(e.target.value)
+                            }
+                            className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                          />
+                          <span className="text-sm">{option.label}</span>
+                        </label>
+                      ))}
+
+                      {/* Custom Date Input */}
+                      {showCustomDate && (
+                        <div className="space-y-3 mt-3">
+                          <div>
+                            <label className="block text-sm text-gray-600 mb-1">
+                              From
+                            </label>
+                            <input
+                              type="date"
+                              value={pendingFilters.minDate}
+                              onChange={(e) =>
+                                handleCustomDateChange(
+                                  "minDate",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full rounded-md border-gray-200 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-600 mb-1">
+                              To
+                            </label>
+                            <input
+                              type="date"
+                              value={pendingFilters.maxDate}
+                              onChange={(e) =>
+                                handleCustomDateChange(
+                                  "maxDate",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full rounded-md border-gray-200 shadow-sm text-sm focus:border-blue-500 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Genre Filter */}
+                <div className="space-y-4">
+                  <button
+                    onClick={() => toggleSection("genre")}
+                    className="flex items-center justify-between w-full text-left"
+                  >
+                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                      Genre
+                    </h3>
+                    <ChevronDownIcon
+                      className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                        expandedSections.genre ? "transform rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {expandedSections.genre && (
+                    <div className="space-y-3 pt-2">
+                      <label className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2">
+                        <input
+                          type="radio"
+                          name="genreFilter-desktop"
+                          value="all"
+                          checked={pendingFilters.genre === "all"}
+                          onChange={(e) =>
+                            handlePendingFilterChange("genre", e.target.value)
+                          }
+                          className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                        />
+                        <span className="text-sm">All Genres</span>
+                      </label>
+                      {Object.entries(GENRE_MAPPINGS).map(
+                        ([code, { label }]) => (
+                          <label
+                            key={code}
+                            className="flex items-center space-x-3 text-gray-600 hover:text-gray-900 py-2"
+                          >
+                            <input
+                              type="radio"
+                              name="genreFilter-desktop"
+                              value={code}
+                              checked={pendingFilters.genre === code}
+                              onChange={(e) =>
+                                handlePendingFilterChange(
+                                  "genre",
+                                  e.target.value
+                                )
+                              }
+                              className="text-blue-600 focus:ring-blue-500 h-4 w-4"
+                            />
+                            <span className="text-sm">{label}</span>
+                          </label>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={resetFilters}
+                  className="flex-1 bg-gray-100 text-gray-700 py-2.5 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={applyFilters}
+                  className="flex-1 bg-blue-600 text-white py-2.5 px-4 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

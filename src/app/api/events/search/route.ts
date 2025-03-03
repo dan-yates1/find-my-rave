@@ -45,6 +45,8 @@ export async function GET(req: Request) {
     const limit = Math.min(validatedParams.limit || 12, 24);
     const genre = searchParams.get('genre');
     const location = validatedParams.location;
+    
+    // Calculate the correct offset based on the page
     const offset = (page - 1) * limit;
 
     // For genre filtering, fetch more events to ensure full pages
@@ -107,9 +109,10 @@ export async function GET(req: Request) {
     const totalPages = Math.max(1, Math.ceil(totalCount / limit));
     
     // Get the correct slice of events for the current page
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const pageEvents = filteredEvents.slice(startIndex, endIndex);
+    // When no genre filter is applied, we don't need to slice as the API already returns the correct page
+    const pageEvents = genre && genre !== 'all' 
+      ? filteredEvents.slice(0, limit)  // Just take the first 'limit' events from filtered results
+      : filteredEvents;  // For unfiltered results, the API already returns the correct page
 
     return NextResponse.json({
       events: pageEvents.map((event: any) => ({

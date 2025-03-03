@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 
 const SKIDDLE_API_BASE = "https://www.skiddle.com/api/v1";
 
-// Add caching for the Skiddle API responses
+// Add caching for the API responses
 const cache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
@@ -15,13 +15,14 @@ export async function GET(
   console.log('Event details request:', params);
 
   try {
+    // Only allow skiddle platform
     if (params.platform !== 'skiddle') {
-      throw new Error('Only Skiddle events are supported');
+      return NextResponse.json(
+        { message: "Only Skiddle platform is currently supported" },
+        { status: 400 }
+      );
     }
 
-    // Add more detailed logging for debugging
-    console.log('Calling Skiddle API:', `${SKIDDLE_API_BASE}/events/${params.eventId}`);
-    
     // Check cache first
     const cacheKey = `event-${params.platform}-${params.eventId}`;
     const cachedData = cache.get(cacheKey);
@@ -29,6 +30,9 @@ export async function GET(
       return NextResponse.json(cachedData.data);
     }
 
+    let event;
+
+    // Handle Skiddle events
     // Add description=1 to get full event details
     const response = await axios.get(`${SKIDDLE_API_BASE}/events/${params.eventId}`, {
       params: {
@@ -44,7 +48,7 @@ export async function GET(
     const skiddleEvent = response.data.results;
 
     // Transform the response to match our Event type
-    const event = {
+    event = {
       id: skiddleEvent.id,
       title: skiddleEvent.eventname,
       description: skiddleEvent.description || '',
@@ -90,4 +94,4 @@ export async function GET(
       { status: error.response?.status || 404 }
     );
   }
-} 
+}

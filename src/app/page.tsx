@@ -17,19 +17,24 @@ export default function Home() {
             disablePictureInPicture
             disableRemotePlayback
           >
-            <source src="/rave-video.mp4" type="video/mp4" />
+            <source src="/rave-video.webm" type="video/webm" />
           </video>
+          {/* Gradient overlay for better contrast */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/30"></div>
         </div>
 
         {/* Content */}
         <div className="relative z-20 flex flex-col items-center justify-center h-full px-4">
-          <div className="text-center space-y-8 max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-7xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-blue-600">
-              Discover Your Next Rave
-            </h1>
-            <p className="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto">
-              Find the best raves and music events near you. Let the beat guide
-              you.
+          <div className="text-center space-y-6 max-w-3xl mx-auto">
+            <div className="flex flex-col items-center">
+              <h1 className="text-5xl md:text-7xl font-bold text-white">
+                <span className="inline-block">Discover</span>{" "}
+                <span className="inline-block text-blue-500">Your Next Rave</span>
+              </h1>
+              <div className="h-1 w-24 bg-blue-600 mt-4 mb-2"></div>
+            </div>
+            <p className="text-xl md:text-2xl text-white/90 max-w-2xl mx-auto">
+              Find the best electronic music events near you
             </p>
 
             {/* <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">

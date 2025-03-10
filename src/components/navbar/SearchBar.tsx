@@ -234,7 +234,7 @@ export default function SearchBar({
           <input
             ref={searchInputRef}
             type="search"
-            placeholder="Search events..."
+            placeholder="an artist, genre, or keyword"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onFocus={handleInputFocus}
@@ -264,7 +264,7 @@ export default function SearchBar({
             <div className="flex-1 flex items-center">
               <input
                 type="search"
-                placeholder="Location..."
+                placeholder="Anywhere"
                 value={location}
                 onChange={(e) => handleLocationInput(e.target.value)}
                 onFocus={handleLocationFocus}

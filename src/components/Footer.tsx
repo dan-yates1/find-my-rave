@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="text-sm text-gray-500">
-            © {new Date().getFullYear()} Find My Rave. All rights reserved.
+            © {new Date().getFullYear()} FINDMYRAVE. All rights reserved.
           </div>
           
           <div className="flex flex-wrap gap-6 text-sm text-gray-500">

@@ -1,12 +1,11 @@
-import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="overflow-auto">
-      <div className="relative min-h-screen text-white">
+    <main className="flex flex-col h-screen overflow-hidden">
+      <div className="relative text-white flex-1">
         {/* Background Video with Overlay */}
-        <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 z-0">
           <video
             autoPlay
             loop
@@ -24,7 +23,7 @@ export default function Home() {
         </div>
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-16">
+        <div className="relative z-10 flex flex-col items-center justify-center h-full px-4 py-16">
           <div className="text-center space-y-12 max-w-4xl mx-auto">
             <div className="flex flex-col items-center">
               <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-white tracking-tight leading-none mb-6">

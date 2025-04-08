@@ -273,16 +273,6 @@ export default async function EventDetailsPage({ params }: EventDetailsPageProps
                     )}
 
                     {/* Ticket Link */}
-                    {event.link && (
-                      <a
-                        href={event.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block w-full bg-blue-600 text-white text-center py-4 px-6 rounded-xl hover:bg-blue-700 transition-colors shadow-sm font-medium"
-                      >
-                        Get Tickets
-                      </a>
-                    )}
                   </div>
                 </div>
 
@@ -302,4 +292,4 @@ export default async function EventDetailsPage({ params }: EventDetailsPageProps
       </div>
     </>
   );
-} 
+}

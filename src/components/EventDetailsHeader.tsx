@@ -3,53 +3,42 @@
 import { Event } from "@prisma/client";
 import Image from "next/image";
 import { CalendarIcon, MapPinIcon, ClockIcon } from "@heroicons/react/24/outline";
-import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import BookmarkButton from './BookmarkButton';
 
 interface EventDetailsHeaderProps {
-  event: Event;
+  event: Event & { link?: string };
 }
 
 const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
   const { data: session } = useSession();
-  const router = useRouter();
-  const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <div className="relative">
-      {/* Event Image */}
-      <div 
-        className="relative w-full h-[400px] overflow-hidden"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <Image
-          src={event.imageUrl || '/event-placeholder.jpg'}
-          alt={event.title}
-          fill
-          className="object-cover blur-md scale-105"
-            
-          priority
+    <div className="relative w-full h-[400px] overflow-hidden">
+      {/* Background Image */}
+      <Image
+        src={event.imageUrl || '/event-placeholder.jpg'}
+        alt={event.title}
+        fill
+        className="object-cover transition-transform duration-500 scale-105 hover:scale-110"
+        priority
+      />
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+      {/* Bookmark Button */}
+      <div className="absolute top-4 right-4 z-10">
+        <BookmarkButton
+          eventId={event.id}
+          variant="detail"
+          size="lg"
         />
-        
-        
-        {/* Bookmark Button - Positioned in top right */}
-        <div className="absolute top-10 sm:top-3 right-4 z-10">
-          <BookmarkButton 
-            eventId={event.id}
-            variant="detail"
-            size="lg"
-          />
-        </div>
       </div>
 
-      {/* Event Details */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-        <h1 className="text-4xl font-bold mb-4">{event.title}</h1>
-        
-        <div className="flex flex-wrap gap-4">
+      {/* Content */}
+      <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10 text-white z-10">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4">{event.title}</h1>
+        <div className="flex flex-wrap gap-4 mb-6">
           <div className="flex items-center gap-2">
             <CalendarIcon className="w-5 h-5" />
             <span>
@@ -61,7 +50,6 @@ const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
               })}
             </span>
           </div>
-
           <div className="flex items-center gap-2">
             <ClockIcon className="w-5 h-5" />
             <span>
@@ -71,12 +59,21 @@ const EventDetailsHeader = ({ event }: EventDetailsHeaderProps) => {
               })}
             </span>
           </div>
-
           <div className="flex items-center gap-2">
             <MapPinIcon className="w-5 h-5" />
             <span>{event.location}</span>
           </div>
         </div>
+        {event.link && (
+          <a
+            href={event.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block bg-gradient-to-r from-orange-500 to-blue-600 hover:from-orange-600 hover:to-blue-700 transition-all duration-300 text-white font-semibold px-6 py-3 rounded-xl shadow-md hover:shadow-lg"
+          >
+            Get Tickets
+          </a>
+        )}
       </div>
     </div>
   );

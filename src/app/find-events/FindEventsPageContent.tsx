@@ -20,11 +20,9 @@ import { capitalizeFirstLetter } from "@/lib/utils";
 // Define ExtendedEvent interface that extends Event from our types
 interface ExtendedEvent extends Event {
   // Any additional properties specific to your application
-  platform: string;
 }
 
 interface Filters {
-  platform: string;
   dateRange?: string;
   priceRange?: string;
   customDate?: string;
@@ -40,13 +38,6 @@ const dateFilterOptions = [
   { label: "This week", value: "this-week" },
   { label: "This weekend", value: "weekend" },
   { label: "Custom date", value: "custom" },
-];
-
-const platformOptions = [
-  { label: "All platforms", value: "all" },
-  { label: "Skiddle", value: "skiddle" },
-  { label: "Resident Advisor", value: "resident-advisor" },
-  { label: "Dice", value: "dice" },
 ];
 
 const genreOptions = [
@@ -91,8 +82,7 @@ const FindEventsPageContent = () => {
   const eventQuery = searchParams.get("event") || "";
   const locationQuery = searchParams.get("location") || "";
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<Filters>({
-    platform: "all",
+  const [filters, setFilters] = useState<Omit<Filters, 'platform'>>({
     dateRange: "all",
     priceRange: "all",
     customDate: "",
@@ -111,8 +101,7 @@ const FindEventsPageContent = () => {
   const router = useRouter();
 
   // Add new state for pending filters
-  const [pendingFilters, setPendingFilters] = useState<Filters>({
-    platform: "all",
+  const [pendingFilters, setPendingFilters] = useState<Omit<Filters, 'platform'>>({
     dateRange: "all",
     priceRange: "all",
     customDate: "",
@@ -129,12 +118,10 @@ const FindEventsPageContent = () => {
   const [expandedSections, setExpandedSections] = useState({
     date: true,
     genre: true,
-    platform: true,
   });
 
   // Add new state for active filters
-  const [activeFilters, setActiveFilters] = useState<Filters>({
-    platform: "all",
+  const [activeFilters, setActiveFilters] = useState<Omit<Filters, 'platform'>>({
     dateRange: "all",
     priceRange: "all",
     customDate: "",
@@ -342,7 +329,6 @@ const FindEventsPageContent = () => {
   // Add reset filters function at the component level
   const resetFilters = () => {
     setPendingFilters({
-      platform: "all",
       dateRange: "all",
       priceRange: "all",
       customDate: "",
@@ -356,8 +342,7 @@ const FindEventsPageContent = () => {
 
   // Add clearAllFilters function
   const clearAllFilters = () => {
-    const defaultFilters: Filters = {
-      platform: "all",
+    const defaultFilters: Omit<Filters, 'platform'> = {
       dateRange: "all",
       priceRange: "all",
       customDate: "",
@@ -398,7 +383,8 @@ const FindEventsPageContent = () => {
   // Function to remove a filter
   const removeFilter = (key: string) => {
     // Update both active filters and actual filters
-    const updatedFilters = {
+    // Ensure platform is not included here
+    const updatedFilters: Omit<Filters, 'platform'> = {
       ...filters,
       [key]: "all", // Reset to "all" or appropriate default
     };
@@ -412,6 +398,7 @@ const FindEventsPageContent = () => {
 
   // Update active filters when filters change
   useEffect(() => {
+    // filters state is already Omit<Filters, 'platform'>
     setActiveFilters(filters);
   }, [filters]);
 
@@ -422,26 +409,7 @@ const FindEventsPageContent = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Active Filters Badges - Moved to a more prominent position */}
-        <div className="mb-4">
-          <ActiveFiltersBadges
-            filters={{
-              ...transformFiltersToObject(filters),
-              ...(sortBy !== "trending" && { sortBy }),
-            }}
-            onRemoveFilter={(key) => {
-              if (key === "sortBy") {
-                setSortBy("trending");
-                setAllEvents([]);
-                setDisplayedEvents([]);
-              } else {
-                removeFilter(key);
-              }
-            }}
-            onClearAll={clearAllFilters}
-          />
-        </div>
+      <div className="max-w-[95%] mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">
 
         {/* Mobile filter dialog */}
         <div
@@ -551,6 +519,8 @@ const FindEventsPageContent = () => {
                   )}
                 </div>
 
+                {/* Platform Filter - REMOVED */}
+
                 {/* Genre Filter */}
                 <div className="space-y-4">
                   <button
@@ -632,9 +602,29 @@ const FindEventsPageContent = () => {
         </div>
 
         {/* Main Content Container */}
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col lg:flex-row gap-8 w-full">
           {/* Events Section */}
-          <div className="flex-1">
+          <div className="flex-grow min-w-0">
+            {/* Active Filters Badges */}
+            <div className="mb-4">
+              <ActiveFiltersBadges
+                filters={{
+                  ...transformFiltersToObject(filters),
+                  ...(sortBy !== "trending" && { sortBy }),
+                }}
+                onRemoveFilter={(key) => {
+                  if (key === "sortBy") {
+                    setSortBy("trending");
+                    setAllEvents([]);
+                    setDisplayedEvents([]);
+                  } else {
+                    removeFilter(key);
+                  }
+                }}
+                onClearAll={clearAllFilters}
+              />
+            </div>
+
             {/* Title Section */}
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-2xl font-bold text-gray-900">{titleText}</h1>
@@ -707,7 +697,6 @@ const FindEventsPageContent = () => {
                       onClick={() => {
                         // Reset filters
                         setFilters({
-                          platform: "all",
                           dateRange: "all",
                           priceRange: "all",
                           customDate: "",
@@ -805,12 +794,12 @@ const FindEventsPageContent = () => {
 
           {/* Desktop Filter Panel - Moved to right side */}
           {isFiltersVisible && (
-            <div className="hidden lg:block w-72 bg-white p-5 rounded-xl shadow-md h-fit sticky top-6">
+            <div className="hidden lg:block flex-shrink-0 w-72 bg-white p-5 rounded-2xl border border-gray-200 shadow-lg sticky top-6 h-fit transition-all duration-300">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">Filters</h2>
+                <h2 className="text-lg font-bold text-gray-900">Filters</h2>
                 <button
                   onClick={() => setIsFiltersVisible(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full"
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                 >
                   <XMarkIcon className="w-5 h-5" />
                 </button>
@@ -821,7 +810,7 @@ const FindEventsPageContent = () => {
                 <div className="space-y-4">
                   <button
                     onClick={() => toggleSection("date")}
-                    className="flex items-center justify-between w-full text-left"
+                    className="flex items-center justify-between w-full text-left hover:bg-gray-50 px-2 py-2 rounded-lg transition-colors"
                   >
                     <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
                       Date
@@ -899,7 +888,7 @@ const FindEventsPageContent = () => {
                 <div className="space-y-4">
                   <button
                     onClick={() => toggleSection("genre")}
-                    className="flex items-center justify-between w-full text-left"
+                    className="flex items-center justify-between w-full text-left hover:bg-gray-50 px-2 py-2 rounded-lg transition-colors"
                   >
                     <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
                       Genre
@@ -952,19 +941,21 @@ const FindEventsPageContent = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Platform Filter - REMOVED */}
               </div>
 
               {/* Action Buttons */}
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={resetFilters}
-                  className="flex-1 bg-gray-100 text-gray-700 py-2.5 px-4 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                  className="flex-1 py-2.5 px-4 rounded-xl font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
                 >
                   Reset
                 </button>
                 <button
                   onClick={applyFilters}
-                  className="flex-1 bg-blue-600 text-white py-2.5 px-4 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+                  className="flex-1 py-2.5 px-4 rounded-xl font-medium bg-gradient-to-r from-orange-500 to-blue-600 text-white hover:from-orange-600 hover:to-blue-700 transition-all duration-300"
                 >
                   Apply
                 </button>
